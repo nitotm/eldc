@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" font-family="Arial, Helvetica, sans-serif" font-size="17" viewBox="0 0 600 241">
+  <path d="M0 0h600v241H0z" fill="#fff"/>
+  <text fill="#555" transform="translate(30 16)">
+
+      <tspan x="0" y="0">Accuracy</tspan>
+  </text>
+  <text transform="translate(4 52)">ELDC</text>
+    <path d="M126 30h93v30H126z" fill="#dfd"/>
+    <text transform="translate(132 52)">98.7%</text>
+    <path d="M219 30h93v30H219z" fill="#dfd"/>
+    <text transform="translate(225 52)">99.8%</text>
+    <path d="M312 30h93v30H312z" fill="#dfd"/>
+    <text transform="translate(318 52)">99.4%</text>
+    <path d="M405 30h93v30H405z" fill="#fec"/>
+    <text transform="translate(411 52)">94.7%</text>
+    <path d="M498 30h102v30H498z" fill="#fee"/>
+    <text transform="translate(504 52)">83.4%</text>
+  <text transform="translate(4 82)">Lingua</text>
+    <path d="M126 60h93v30H126z" fill="#ffc"/>
+    <text transform="translate(132 82)">96.1%</text>
+    <path d="M219 60h93v30H219z" fill="#dfd"/>
+    <text transform="translate(225 82)">99.2%</text>
+    <path d="M312 60h93v30H312z" fill="#dfd"/>
+    <text transform="translate(318 82)">98.7%</text>
+    <path d="M405 60h93v30H405z" fill="#fec"/>
+    <text transform="translate(411 82)">93.4%</text>
+    <path d="M498 60h102v30H498z" fill="#fee"/>
+    <text transform="translate(504 82)">80.7%</text>
+  <text transform="translate(4 112)">fasttext-subset</text>
+    <path d="M126 90h93v30H126z" fill="#fec"/>
+    <text transform="translate(132 112)">94.1%</text>
+    <path d="M219 90h93v30H219z" fill="#dfd"/>
+    <text transform="translate(225 112)">98.0%</text>
+    <path d="M312 90h93v30H312z" fill="#ffc"/>
+    <text transform="translate(318 112)">97.9%</text>
+    <path d="M405 90h93v30H405z" fill="#fee"/>
+    <text transform="translate(411 112)">83.1%</text>
+    <path d="M498 90h102v30H498z" fill="#eee"/>
+    <text transform="translate(504 112)">67.8%</text>
+  <text transform="translate(4 142)">fasttext-all</text>
+    <path d="M126 120h93v30H126z" fill="#fff"/>
+    <text transform="translate(132 142)">--</text>
+    <path d="M219 120h93v30H219z" fill="#ffc"/>
+    <text transform="translate(225 142)">97.4%</text>
+    <path d="M312 120h93v30H312z" fill="#ffc"/>
+    <text transform="translate(318 142)">97.6%</text>
+    <path d="M405 120h93v30H405z" fill="#fee"/>
+    <text transform="translate(411 142)">81.5%</text>
+    <path d="M498 120h102v30H498z" fill="#eee"/>
+    <text transform="translate(504 142)">65.7%</text>
+  <text transform="translate(4 172)">CLD2*</text>
+    <path d="M126 150h93v30H126z" fill="#fec"/>
+    <text transform="translate(132 172)">92.1%*</text>
+    <path d="M219 150h93v30H219z" fill="#dfd"/>
+    <text transform="translate(225 172)">98.1%</text>
+    <path d="M312 150h93v30H312z" fill="#ffc"/>
+    <text transform="translate(318 172)">97.4%</text>
+    <path d="M405 150h93v30H405z" fill="#fee"/>
+    <text transform="translate(411 172)">85.6%</text>
+    <path d="M498 150h102v30H498z" fill="#fee"/>
+    <text transform="translate(504 172)">70.7%</text>
+  <text transform="translate(4 202)">Lingua-low</text>
+    <path d="M126 180h93v30H126z" fill="#fee"/>
+    <text transform="translate(132 202)">89.3%</text>
+    <path d="M219 180h93v30H219z" fill="#ffc"/>
+    <text transform="translate(225 202)">97.3%</text>
+    <path d="M312 180h93v30H312z" fill="#ffc"/>
+    <text transform="translate(318 202)">96.3%</text>
+    <path d="M405 180h93v30H405z" fill="#fee"/>
+    <text transform="translate(411 202)">84.1%</text>
+    <path d="M498 180h102v30H498z" fill="#eee"/>
+    <text transform="translate(504 202)">68.6%</text>
+  <text transform="translate(4 232)">franc</text>
+    <path d="M126 210h93v30H126z" fill="#fee"/>
+    <text transform="translate(132 232)">76.9%</text>
+    <path d="M219 210h93v30H219z" fill="#fec"/>
+    <text transform="translate(225 232)">93.8%</text>
+    <path d="M312 210h93v30H312z" fill="#fec"/>
+    <text transform="translate(318 232)">92.3%</text>
+    <path d="M405 210h93v30H405z" fill="#eee"/>
+    <text transform="translate(411 232)">67.0%</text>
+    <path d="M498 210h102v30H498z" fill="#eee"/>
+    <text transform="translate(504 232)">53.8%</text>
+  <g fill="#ddd">
+    <path d="M0 0h600v1H0z"/>
+    <path d="M0 30h600v1H0z"/>
+    <path d="M0 60h600v1H0z"/>
+    <path d="M0 90h600v1H0z"/>
+    <path d="M0 120h600v1H0z"/>
+    <path d="M0 150h600v1H0z"/>
+    <path d="M0 180h600v1H0z"/>
+    <path d="M0 210h600v1H0z"/>
+    <path d="M0 240h600v1H0z"/>
+    <path d="M0 240h600v1H0z"/>
+  </g>
+  <path d="M0 0h1v241H0zm126 0h1v241h-1zm93 0h1v241h-1zm93 0h1v241h-1zm93 0h1v241h-1zm93 0h1v241h-1zm101 0h1v241h-1z" fill="#ddd"/>
+  <g font-size="16" font-weight="700">
+    <text transform="translate(130 21)"><tspan>Tatoeba-50</tspan></text>
+    <text transform="translate(223 21)"><tspan>ELD test</tspan></text>
+    <text transform="translate(316 21)"><tspan>Sentences</tspan></text>
+    <text transform="translate(409 21)"><tspan>Word pairs</tspan></text>
+    <text font-size="15.4" transform="translate(502 21)"><tspan>Single words</tspan></text>
+  </g>
+  <path d="M0 0h1v240H0zm126 0h1v240h-1zm0" fill="none"/>
+</svg>

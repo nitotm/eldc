@@ -1,0 +1,27 @@
+# MANIFEST.in — files to include in the source distribution (sdist)
+# These are not picked up automatically by setuptools because they live
+# alongside the Python package but are not .py files.
+
+# C extension source and headers
+recursive-include src/eldc *.c
+recursive-include src/eldc *.h
+
+# Documentation and metadata
+include README.md
+include LICENSE
+include pyproject.toml
+
+# Exclude build artefacts
+global-exclude __pycache__
+global-exclude *.pyc
+global-exclude *.pyd
+global-exclude *.so
+global-exclude *.dylib
+global-exclude *.dll
+global-exclude *.a
+global-exclude *.lib
+global-exclude *.exp
+global-exclude *.o
+global-exclude *.obj
+prune build
+prune dist

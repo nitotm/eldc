@@ -1,0 +1,51 @@
+[build-system]
+requires      = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name            = "eldc"
+version         = "0.1.0"
+description     = "The fastest high-accuracy natural language detector. Compiled in C. Nito-ELDC, ELDC, ELD-C."
+readme          = "README.md"
+license         = {text = "Apache-2.0"}
+requires-python = ">=3.8"
+keywords        = ["nlp", "language", "natural language processing", "natural language", "language detection", "language detector", "language identification", "language classification"]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: C",
+    "Topic :: Text Processing :: Linguistic",
+]
+
+[project.urls]
+Homepage = "https://github.com/nitotm/eldc"
+Issues   = "https://github.com/nitotm/eldc/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"eldc" = ["*.c", "*.h"]
+
+# ── cibuildwheel — build wheels for all platforms in CI ──────────────────
+# Run:  python -m cibuildwheel --platform linux   (or macos / windows)
+[tool.cibuildwheel]
+build = "cp38-* cp39-* cp310-* cp311-* cp312-* cp313-*"
+skip  = "*-win32 *-musllinux*"
+test-command = "python -c \"import eldc; eldc.init(); assert eldc.detect('Bonjour le monde') == 'fr'\""
+
+[tool.cibuildwheel.linux]
+manylinux-x86_64-image  = "manylinux2014"
+manylinux-aarch64-image = "manylinux2014"
+
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "arm64"]
