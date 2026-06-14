@@ -23,7 +23,7 @@ ELD is also available in [PHP](https://github.com/nitotm/efficient-language-dete
 
 ## ELDC Python package
 
-It compiles the C extension on your machine. You need a C compiler (GCC, Clang, or MSVC) and Python headers. On most Linux/macOS systems these are already present. On Windows, install **Visual Studio Build Tools** and ensure `cl.exe` is on PATH.
+By default, `pip` will install a pre-compiled binary package for your system. If you need to build from source, you will need a C compiler (GCC, Clang, or MSVC) and Python headers. On most Linux/macOS systems, these are already present. On Windows, install **Visual Studio Build Tools** and ensure `cl.exe` is on PATH.
 
 ### Installation
 
