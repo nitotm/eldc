@@ -23,7 +23,7 @@ ELD is also available in [PHP](https://github.com/nitotm/efficient-language-dete
 
 ## ELDC Python package
 
-By default, `pip` will install a pre-compiled binary package for your system. If you need to build from source, you will need a C compiler (GCC, Clang, or MSVC) and Python headers, then use command `pip install --no-binary eldc eldc` or `pip install .` for local build.
+By default, `pip` will install a pre-compiled binary package for your system. If you need to build from source, you will need a C compiler (GCC, Clang, or MSVC) and Python headers, then use command `pip install --no-binary eldc eldc` or `pip install .` to build from local files.
 
 ### Installation
 
