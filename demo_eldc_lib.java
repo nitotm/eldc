@@ -16,15 +16,15 @@ public class demo_eldc_lib {
 
     static final int MAX_SCORES = 20;
 
-    @Structure.FieldOrder({"lang", "score"})
+    @Structure.FieldOrder({"language", "score"})
     public static class EldcScoreItem extends Structure {
-        public Pointer lang;   // const char* — static storage, read with .getString(0)
+        public Pointer language;   // const char* — static storage, read with .getString(0)
         public float   score;
     }
 
-    @Structure.FieldOrder({"lang", "reliable", "n_scores", "scores"})
+    @Structure.FieldOrder({"language", "reliable", "n_scores", "scores"})
     public static class EldcDetectResult extends Structure {
-        public Pointer        lang;
+        public Pointer        language;
         public int            reliable;
         public int            n_scores;
         public EldcScoreItem[] scores = (EldcScoreItem[]) new EldcScoreItem().toArray(MAX_SCORES);
@@ -64,9 +64,9 @@ public class demo_eldc_lib {
         System.out.println("\n-- detect_details --");
         var r = new EldcDetectResult();
         lib.eldc_detect_details("Bonjour le monde", r);
-        System.out.printf("language : %s  reliable: %b%n", lang(r.lang), r.reliable == 1);
+        System.out.printf("language : %s  reliable: %b%n", lang(r.language), r.reliable == 1);
         for (int i = 0; i < r.n_scores; i++)
-            System.out.printf("  %s: %.4f%n", lang(r.scores[i].lang), r.scores[i].score);
+            System.out.printf("  %s: %.4f%n", lang(r.scores[i].language), r.scores[i].score);
 
         // ── 4. set_scores ─────────────────────────────────────────────────────
         System.out.println("\n-- set_scores(2) --");
@@ -74,7 +74,7 @@ public class demo_eldc_lib {
 		  // We could reuse r, if we make sure to only read up to n_scores, but not thread-safe
         var r2 = new EldcDetectResult();
         lib.eldc_detect_details("Was ist das?", r2);
-        System.out.printf("language: %s  n_scores: %d%n", lang(r2.lang), r2.n_scores); // de, 2
+        System.out.printf("language: %s  n_scores: %d%n", lang(r2.language), r2.n_scores); // de, 2
         lib.eldc_set_scores(3);
 
         // ── 5. set_languages ──────────────────────────────────────────────────

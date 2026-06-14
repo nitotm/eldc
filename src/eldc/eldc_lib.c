@@ -183,7 +183,7 @@ ELD_API const char *eldc_detect_details(const char *text, EldcDetectResult *resu
     if (__builtin_expect(!ht, 0)) {
         fprintf(stderr, "eldc error: library not initialized. Call eldc_init() before detecting.\n");
         if (result) {
-            result->lang = NULL;
+            result->language = NULL;
             result->reliable = 0;
             result->n_scores = 0;
         }
@@ -201,16 +201,16 @@ ELD_API const char *eldc_detect_details(const char *text, EldcDetectResult *resu
     EldResult r;
     eld_process_line(text, &cfg, &r);
 
-    result->lang     = r.lang ? r.lang : "und";
+    result->language = r.language ? r.language : "und";
     result->reliable = r.reliable;
     result->n_scores = r.n_entries;
 
     for (int i = 0; i < r.n_entries; i++) {
-        result->scores[i].lang  = _lib_scheme
-                                ? ELD_ISO639_2T[r.entries[i].idx]
-                                : ELD_langCodes[r.entries[i].idx];
+        result->scores[i].language  = _lib_scheme
+                                    ? ELD_ISO639_2T[r.entries[i].idx]
+                                    : ELD_langCodes[r.entries[i].idx];
         result->scores[i].score = r.entries[i].ns;
     }
 
-    return result->lang;
+    return result->language;
 }

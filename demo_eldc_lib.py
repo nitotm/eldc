@@ -32,13 +32,13 @@ ELD_LIB_MAX_SCORES = 20
 
 class EldcScoreItem(ctypes.Structure):
     _fields_ = [
-        ("lang",  ctypes.c_char_p),   # static storage in the library, never freed
-        ("score", ctypes.c_float),
+        ("language", ctypes.c_char_p),   # static storage in the library, never freed
+        ("score",    ctypes.c_float),
     ]
 
 class EldcDetectResult(ctypes.Structure):
     _fields_ = [
-        ("lang",     ctypes.c_char_p),
+        ("language", ctypes.c_char_p),
         ("reliable", ctypes.c_int),
         ("n_scores", ctypes.c_int),
         ("scores",   EldcScoreItem * ELD_LIB_MAX_SCORES),
@@ -94,11 +94,11 @@ print()
 print("-- eldc_detect_details() --")
 r = EldcDetectResult()
 lib.eldc_detect_details(b"Bonjour le monde", ctypes.byref(r))
-print(f"language : {s(r.lang)}")
+print(f"language : {s(r.language)}")
 print(f"reliable : {bool(r.reliable)}")
 print(f"scores   : ", end="")
 for i in range(r.n_scores):
-    print(f"{s(r.scores[i].lang)}={r.scores[i].score:.4f}", end="  ")
+    print(f"{s(r.scores[i].language)}={r.scores[i].score:.4f}", end="  ")
 print("\n")
 
 # ── 4. eldc_set_scores() — number of scores returned ─────────────────────────
@@ -108,8 +108,8 @@ lib.eldc_set_scores(2)
 # We could reuse r, if we make sure to only read up to n_scores, but not thread-safe
 r = EldcDetectResult()
 lib.eldc_detect_details(b"Was ist das?", ctypes.byref(r))
-print(f"language : {s(r.lang)},  n_scores: {r.n_scores}")  # de, 2
-scores_str = "  ".join(f"{s(r.scores[i].lang)}={r.scores[i].score:.4f}"
+print(f"language : {s(r.language)},  n_scores: {r.n_scores}")  # de, 2
+scores_str = "  ".join(f"{s(r.scores[i].language)}={r.scores[i].score:.4f}"
                         for i in range(r.n_scores))
 print(f"scores   : {scores_str}")
 lib.eldc_set_scores(10)   # reset
@@ -140,7 +140,7 @@ lib.eldc_set_scheme(b"iso639-2t")
 print(s(lib.eldc_detect(b"Bonjour")))              # fra
 r = EldcDetectResult()
 lib.eldc_detect_details(b"Hello world", ctypes.byref(r))
-print(s(r.lang), [s(r.scores[i].lang) for i in range(min(r.n_scores, 3))])
+print(s(r.language), [s(r.scores[i].language) for i in range(min(r.n_scores, 3))])
 
 lib.eldc_set_scheme(b"iso639-1")                   # reset
 print(s(lib.eldc_detect(b"Bonjour")))              # fr
@@ -156,13 +156,13 @@ def detect_worker(text):
     # Each thread uses its own EldcDetectResult on the stack
     r = EldcDetectResult()
     lib.eldc_detect_details(text, ctypes.byref(r))
-    return s(r.lang), bool(r.reliable)
+    return s(r.language), bool(r.reliable)
 
 print("-- multithreaded eldc_detect_details() --")
 with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
     results = list(pool.map(detect_worker, texts))
-for (lang, reliable), text in zip(results, texts):
-    print(f"  {lang}  reliable={reliable}  {text}")
+for (language, reliable), text in zip(results, texts):
+    print(f"  {language}  reliable={reliable}  {text}")
 print()
 
 # ── 8. Cleanup ───────────────────────────────────────────────────────────────

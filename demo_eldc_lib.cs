@@ -14,14 +14,14 @@ const string LIB     = "eldc";   // resolves to eldc.dll / libeldc.so / libeldc.
 
 [StructLayout(LayoutKind.Sequential)]
 struct EldcScoreItem {
-    public IntPtr Lang;   // const char* — decode with Marshal.PtrToStringAnsi
+    public IntPtr Language;   // const char* — decode with Marshal.PtrToStringAnsi
     public float  Score;
     // 4-byte padding added automatically to align the next array element
 }
 
 [StructLayout(LayoutKind.Sequential)]
 struct EldcDetectResult {
-    public IntPtr Lang;
+    public IntPtr Language;
     public int    Reliable;
     public int    NScores;
     [MarshalAs(UnmanagedType.ByValArray, SizeConst = MAX_SCORES)]
@@ -57,16 +57,16 @@ Console.WriteLine(S(Eldc.Detect("12345 !@#")));          // und
 Console.WriteLine("\n-- detect_details --");
 var r = new EldcDetectResult();
 Eldc.DetectDetails("Bonjour le monde", ref r);
-Console.WriteLine($"language : {S(r.Lang)}  reliable: {r.Reliable == 1}");
+Console.WriteLine($"language : {S(r.Language)}  reliable: {r.Reliable == 1}");
 for (int i = 0; i < r.NScores; i++)
-    Console.WriteLine($"  {S(r.Scores[i].Lang)}: {r.Scores[i].Score:F4}");
+    Console.WriteLine($"  {S(r.Scores[i].Language)}: {r.Scores[i].Score:F4}");
 
 // ── 4. set_scores ─────────────────────────────────────────────────────────────
 Console.WriteLine("\n-- set_scores(2) --");
 Eldc.SetScores(2); // Default 3, Max 20, Min 1.
 var r2 = new EldcDetectResult();
 Eldc.DetectDetails("Was ist das?", ref r2);
-Console.WriteLine($"language: {S(r2.Lang)}  n_scores: {r2.NScores}");  // de, 2
+Console.WriteLine($"language: {S(r2.Language)}  n_scores: {r2.NScores}");  // de, 2
 Eldc.SetScores(3);
 
 // ── 5. set_languages ──────────────────────────────────────────────────────────

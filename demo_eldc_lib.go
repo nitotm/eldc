@@ -14,9 +14,9 @@ package main
 #include <stdlib.h>
 
 #define MAX_SCORES 20
-typedef struct { const char *lang; float score; } EldcScoreItem;
+typedef struct { const char *language; float score; } EldcScoreItem;
 typedef struct {
-    const char   *lang;
+    const char   *language;
     int           reliable;
     int           n_scores;
     EldcScoreItem scores[MAX_SCORES];
@@ -61,9 +61,9 @@ func main() {
 	fmt.Println("\n-- detect_details --")
 	var r C.EldcDetectResult
 	C.eldc_detect_details(t, &r)
-	fmt.Printf("language : %s  reliable: %v\n", gs(r.lang), r.reliable == 1)
+	fmt.Printf("language : %s  reliable: %v\n", gs(r.language), r.reliable == 1)
 	for i := 0; i < int(r.n_scores); i++ {
-		fmt.Printf("  %s: %.4f\n", gs(r.scores[i].lang), float32(r.scores[i].score))
+		fmt.Printf("  %s: %.4f\n", gs(r.scores[i].language), float32(r.scores[i].score))
 	}
 
 	// ── 4. set_scores ─────────────────────────────────────────────────────────
@@ -72,7 +72,7 @@ func main() {
 	var r2 C.EldcDetectResult
 	w := cs("Was ist das?"); defer free(w)
 	C.eldc_detect_details(w, &r2)
-	fmt.Printf("language: %s  n_scores: %d\n", gs(r2.lang), r2.n_scores) // de, 2
+	fmt.Printf("language: %s  n_scores: %d\n", gs(r2.language), r2.n_scores) // de, 2
 	C.eldc_set_scores(3)
 
 	// ── 5. set_languages ──────────────────────────────────────────────────────

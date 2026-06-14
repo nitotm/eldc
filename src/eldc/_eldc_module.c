@@ -158,12 +158,12 @@ static PyTypeObject EldcResult_Type = {
 /* Build a new EldcResult.
  *   scores_dict : stolen reference; NULL → empty dict allocated internally.
  *   reliable    : 0 or 1 → stored as Py_False / Py_True. */
-static PyObject *make_result(const char *lang, PyObject *scores_dict, int reliable)
+static PyObject *make_result(const char *language, PyObject *scores_dict, int reliable)
 {
     EldcResult *r = PyObject_New(EldcResult, &EldcResult_Type);
     if (!r) { Py_XDECREF(scores_dict); return NULL; }
 
-    r->language = lang ? PyUnicode_FromString(lang)
+    r->language = language ? PyUnicode_FromString(language)
                        : (Py_INCREF(Py_None), Py_None);
     r->scores   = scores_dict ? scores_dict : PyDict_New();
     r->reliable = PyBool_FromLong(reliable);   /* new ref: Py_True or Py_False */
@@ -200,12 +200,12 @@ static PyObject *py_detect(PyObject *module, PyObject *args)
         return NULL;
     }
 
-    const char *lang;
+    const char *language;
     Py_BEGIN_ALLOW_THREADS
-    lang = detect_ex(text, NULL, NULL);
+    language = detect_ex(text, NULL, NULL);
     Py_END_ALLOW_THREADS
 
-    return PyUnicode_FromString(lang ? lang : "und");
+    return PyUnicode_FromString(language ? language : "und");
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -255,7 +255,7 @@ static PyObject *py_detect_details(PyObject *module, PyObject *args)
         }
     }
 
-    return make_result(result.lang, dct, result.reliable);
+    return make_result(result.language, dct, result.reliable);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

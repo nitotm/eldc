@@ -70,22 +70,22 @@ static uint64_t parse_lang_mask(const char *str)
  * buf must have at least ELD_EMIT_BUFSIZE bytes available.
  *
  * Output formats:
- *   cfg.scores > 0              {"lang":"fr","reliable":true,"scores":{"fr":0.9234,...}}\n
- *   cfg.scores == 0, reliable   {"lang":"fr","reliable":true}\n
+ *   cfg.scores > 0              {"language":"fr","reliable":true,"scores":{"fr":0.9234,...}}\n
+ *   cfg.scores == 0, reliable   {"language":"fr","reliable":true}\n
  *   plain                       fr\n
  *
- * For all cases NULL lang is rendered as "und".
+ * For all cases NULL language is rendered as "und".
  * ═══════════════════════════════════════════════════════════════════════════ */
 static size_t eld_emit_result(char *buf, const EldResult *r, const EldConfig *cfg)
 {
     char *p = buf;
-    const char *l = r->lang ? r->lang : "und";
+    const char *l = r->language ? r->language : "und";
 
 #define _ES(s)  do { const char *_s=(s); while (*_s) *p++=*_s++; } while (0)
 #define _EC(ch) (*p++ = (ch))
 
     if (cfg->scores > 0) {
-        _ES("{\"lang\":\""); _ES(l); _EC('"');
+        _ES("{\"language\":\""); _ES(l); _EC('"');
         if (cfg->reliable) {
             _ES(",\"reliable\":");
             _ES(r->reliable ? "true" : "false");
@@ -109,7 +109,7 @@ static size_t eld_emit_result(char *buf, const EldResult *r, const EldConfig *cf
         }
         _ES("}}\n");
     } else if (cfg->reliable) {
-        _ES("{\"lang\":\""); _ES(l); _ES("\",\"reliable\":");
+        _ES("{\"language\":\""); _ES(l); _ES("\",\"reliable\":");
         _ES(r->reliable ? "true" : "false"); _ES("}\n");
     } else {
         _ES(l); _EC('\n');
@@ -139,7 +139,7 @@ static void eld_print_help(const char *prog, int show_threads)
         "                          Accepts ISO 639-1 or ISO 639-2/T codes.\n"
         "  -s, --scores [N]        Output compact JSON with top-N normalised [0,1] scores\n"
         "                          N must be 1..%d; omit N to get all %d.\n"
-        "                          Example: {\"lang\":\"en\",\"scores\":{\"en\":0.9234,...}}\n"
+        "                          Example: {\"language\":\"en\",\"scores\":{\"en\":0.9234,...}}\n"
         "  -r, --reliable          Add \"reliable\" boolean to JSON output\n"
         "      --scheme NAME       iso639-1 (default) | iso639-2t\n"
         "%s"

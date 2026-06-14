@@ -147,9 +147,9 @@ int main(int argc, char *argv[])
             fwrite(buf, 1, eld_emit_result(buf, &result, &cfg), stdout);
         } else if (verbose) {
             double elapsed = get_time_seconds() - start_time;
-            printf("%s\n(%.7f ms)\n", result.lang ? result.lang : "und", elapsed * 1000.0);
+            printf("%s\n(%.7f ms)\n", result.language ? result.language : "und", elapsed * 1000.0);
         } else {
-            puts(result.lang ? result.lang : "und");
+            puts(result.language ? result.language : "und");
         }
         return 0;
     }

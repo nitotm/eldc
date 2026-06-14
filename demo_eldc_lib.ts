@@ -24,12 +24,12 @@ const lib = koffi.load(libName);
 const MAX_SCORES = 20;
 
 const EldcScoreItem = koffi.struct('EldcScoreItem', {
-    lang:  'const char *',
-    score: 'float',
+    language: 'const char *',
+    score:    'float',
 });
 
 const EldcDetectResult = koffi.struct('EldcDetectResult', {
-    lang:     'const char *',
+    language: 'const char *',
     reliable: 'int',
     n_scores: 'int',
     scores:   koffi.array(EldcScoreItem, MAX_SCORES),
@@ -61,16 +61,16 @@ console.log(eldc_detect('12345 !@#'));          // und
 console.log('\n-- detect_details --');
 const r: any = {};
 eldc_detect_details('Bonjour le monde', r);
-console.log(`language : ${r.lang}  reliable: ${r.reliable === 1}`);
+console.log(`language : ${r.language}  reliable: ${r.reliable === 1}`);
 for (let i = 0; i < r.n_scores; i++)
-    console.log(`  ${r.scores[i].lang}: ${r.scores[i].score.toFixed(4)}`);
+    console.log(`  ${r.scores[i].language}: ${r.scores[i].score.toFixed(4)}`);
 
 // ── 4. set_scores ─────────────────────────────────────────────────────────────
 console.log('\n-- set_scores(2) --');
 eldc_set_scores(2); // Default 3, Max 20, Min 1.
 const r2: any = {};
 eldc_detect_details('Was ist das?', r2);
-console.log(`language: ${r2.lang}  n_scores: ${r2.n_scores}`);  // de, 2
+console.log(`language: ${r2.language}  n_scores: ${r2.n_scores}`);  // de, 2
 eldc_set_scores(3);
 
 // ── 5. set_languages ──────────────────────────────────────────────────────────

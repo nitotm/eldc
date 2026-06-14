@@ -15,9 +15,9 @@ $lib_name =
     (PHP_OS_FAMILY === 'Darwin' ? $base . 'libeldc.dylib' : $base . 'libeldc.so');
 
 $ffi = FFI::cdef('
-    typedef struct { const char *lang; float score; } EldcScoreItem;
+    typedef struct { const char *language; float score; } EldcScoreItem;
     typedef struct {
-        const char   *lang;
+        const char   *language;
         int           reliable;
         int           n_scores;
         EldcScoreItem scores[20];
@@ -49,17 +49,17 @@ echo $ffi->eldc_detect("12345 !@#") . "\n";          // und
 echo "\n-- detect_details --\n";
 $r = $ffi->new("EldcDetectResult");
 $ffi->eldc_detect_details("Bonjour le monde", FFI::addr($r));
-printf("language : %s  reliable: %s\n", $r->lang, $r->reliable ? 'true' : 'false');
+printf("language : %s  reliable: %s\n", $r->language, $r->reliable ? 'true' : 'false');
 for ($i = 0; $i < $r->n_scores; $i++)
-    printf("  %s: %.4f\n", $r->scores[$i]->lang, $r->scores[$i]->score);
+    printf("  %s: %.4f\n", $r->scores[$i]->language, $r->scores[$i]->score);
 
 // ── 4. set_scores ────────────────────────────────────────────────────────────
 echo "\n-- set_scores(2) --\n";
 $ffi->eldc_set_scores(2);
-// We could reuse r, if we make sure to only read up to n_scores, but not thread-safe
+// We could reuse $r, if we make sure to only read up to n_scores, but not thread-safe
 $r2 = $ffi->new("EldcDetectResult");
 $ffi->eldc_detect_details("Was ist das?", FFI::addr($r2));
-printf("language: %s  n_scores: %d\n", $r2->lang, $r2->n_scores);  // de, 2
+printf("language: %s  n_scores: %d\n", $r2->language, $r2->n_scores);  // de, 2
 $ffi->eldc_set_scores(3);  // reset
 
 // ── 5. set_languages ─────────────────────────────────────────────────────────

@@ -18,13 +18,13 @@ module ELD
   MAX_SCORES = 20
 
   class ScoreItem < FFI::Struct
-    layout :lang,  :pointer,
-           :score, :float
+    layout :language,  :pointer,
+           :score,     :float
     # 4-byte padding added automatically for 64-bit alignment
   end
 
   class DetectResult < FFI::Struct
-    layout :lang,     :pointer,
+    layout :language, :pointer,
            :reliable, :int,
            :n_scores, :int,
            :scores,   [ScoreItem, MAX_SCORES]
@@ -58,15 +58,15 @@ puts ELD.eldc_detect("12345 !@#")          # und
 puts "\n-- detect_details --"
 r = ELD::DetectResult.new
 ELD.eldc_detect_details("Bonjour le monde", r)
-puts "language : #{ELD.lang(r[:lang])}  reliable: #{r[:reliable] == 1}"
-r[:n_scores].times { |i| puts "  #{ELD.lang(r[:scores][i][:lang])}: #{r[:scores][i][:score].round(4)}" }
+puts "language : #{ELD.lang(r[:language])}  reliable: #{r[:reliable] == 1}"
+r[:n_scores].times { |i| puts "  #{ELD.lang(r[:scores][i][:language])}: #{r[:scores][i][:score].round(4)}" }
 
 # ── 4. set_scores ─────────────────────────────────────────────────────────────
 puts "\n-- set_scores(2) --"
 ELD.eldc_set_scores(2)  # Default 3, Max 20, Min 1.
 r2 = ELD::DetectResult.new
 ELD.eldc_detect_details("Was ist das?", r2)
-puts "language: #{ELD.lang(r2[:lang])}  n_scores: #{r2[:n_scores]}"  # de, 2
+puts "language: #{ELD.lang(r2[:language])}  n_scores: #{r2[:n_scores]}"  # de, 2
 ELD.eldc_set_scores(3)
 
 # ── 5. set_languages ──────────────────────────────────────────────────────────

@@ -185,7 +185,7 @@ typedef struct {
  *   n_entries : number of filled entries[]; 0 when cfg.scores was 0
  * ═══════════════════════════════════════════════════════════════════════════ */
 typedef struct {
-    const char   *lang;
+    const char   *language;
     int           reliable;
     int           n_entries;
     EldScoreEntry entries[ELD_MAX_SCORES];
@@ -561,11 +561,11 @@ static void eld_process_line(const char    *text,
      * A scheme override alone does NOT disable this path: g_scheme is kept
      * in sync with cfg->scheme by every set_scheme() path (eldc_lib.c,
      * _eldc_module.c, eld.c/eld_mt.c --scheme), and detect_ex()'s returned
-     * code already uses g_scheme, so r->lang comes back in the requested
+     * code already uses g_scheme, so r->language comes back in the requested
      * scheme either way. */
     if (!cfg->subset && !cfg->scores && !cfg->reliable) {
-        const char *lang = detect_ex(text, NULL, NULL);
-        r->lang      = lang;   /* NULL = not detected */
+        const char *language = detect_ex(text, NULL, NULL);
+        r->language      = language;   /* NULL = not detected */
         r->n_entries = 0;
         r->reliable  = 0;
         return;
@@ -577,7 +577,7 @@ static void eld_process_line(const char    *text,
     detect_ex(text, raw, &nk);
 
     if (nk == 0) {
-        r->lang      = NULL;
+        r->language      = NULL;
         r->n_entries = 0;
         r->reliable  = 0;
         return;
@@ -610,7 +610,7 @@ static void eld_process_line(const char    *text,
         }
     }
 
-    r->lang = (best >= 0)
+    r->language = (best >= 0)
             ? (cfg->scheme ? ELD_ISO639_2T[best] : ELD_langCodes[best])
             : NULL;
 

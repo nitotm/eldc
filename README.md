@@ -95,9 +95,9 @@ Find complete demos at the root folder of this repository, for each programming 
 Here is a simple demo in PHP, as it is quite readable.
 ```php
 $ffi = FFI::cdef('
-    typedef struct { const char *lang; float score; } EldcScoreItem;
+    typedef struct { const char *language; float score; } EldcScoreItem;
     typedef struct {
-        const char   *lang;
+        const char   *language;
         int           reliable;
         int           n_scores;
         EldcScoreItem scores[20];
@@ -120,10 +120,10 @@ $ffi->eldc_detect("Bonjour le monde");  // string: "fr"
 // detect_details() to retrieve full data
 $r = $ffi->new("EldcDetectResult");
 $ffi->eldc_detect_details("Bonjour le monde", FFI::addr($r));
-$r->lang;  // string: "fr"
+$r->language;  // string: "fr"
 $r->reliable;  // int: 1 (0 for false, 1 for true)
 $r->n_scores;  // int: 3 (default, up to)
-$r->scores[0]->lang;  // string: "fr"
+$r->scores[0]->language;  // string: "fr"
 $r->scores[0]->score;  // float: 0.9016
 
 // Return up to X scores. Default 3, max 20
@@ -189,7 +189,7 @@ If we use `--scores` or `--reliable`, it will return JSON, if not, a simple unqu
                         Accepts ISO 639-1 or ISO 639-2/T codes.
 -s, --scores [N]        Output compact JSON with top-N normalised [0,1] scores
                         N must be 1..20; omit N to get all 20.
-                        Example: {"lang":"en","scores":{"en":0.9234,...}}
+                        Example: {"language":"en","scores":{"en":0.9234,...}}
 -r, --reliable          Add "reliable" boolean to JSON output
     --scheme NAME       iso639-1 (default) | iso639-2t
 ```
@@ -288,7 +288,7 @@ It is the default ELD language scheme. `--scheme iso639-1`
   
 ***
 
-#### More info
+### More info
 * ELD-C executable is 26MB, and loads a 32MB hashtable (64MB if --faster), using a total of ~55MB of memory. 
 * ELD-C only reads first 1000 bytes of the input string (benchmarks are fair, with all lines under), but could be modded, if you feel an increased `--limit` flag/option is necessary, open a discussion.
 * Unlike other versions of ELD, ELD-C only comes with the 'large' database size, as that is the optimal one, but other sizes could be added.

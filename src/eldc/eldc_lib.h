@@ -20,8 +20,8 @@
  *   EldcDetectResult r;
  *   eldc_set_scores(5);
  *   eldc_detect_details("Bonjour le monde", &r);
- *   printf("lang=%s reliable=%d score=%.4f\n",
- *          r.lang, r.reliable, r.scores[0].score);
+ *   printf("language=%s reliable=%d score=%.4f\n",
+ *          r.language, r.reliable, r.scores[0].score);
  *   eldc_close();
  *
  * Quick start (PHP FFI):
@@ -63,13 +63,13 @@ extern "C" {
 
 /* One language/score pair inside EldcDetectResult. */
 typedef struct {
-    const char *lang;   /* ISO 639-1 or 639-2/T code; static storage, never freed */
-    float       score;  /* normalised confidence [0.0, 1.0] */
+    const char *language; /* ISO 639-1 or 639-2/T code; static storage, never freed */
+    float       score;    /* normalised confidence [0.0, 1.0] */
 } EldcScoreItem;
 
 /* Full detection result populated by eldc_detect_details(). */
 typedef struct {
-    const char  *lang;                            /* "und" if not detected       */
+    const char  *language;                        /* "und" if not detected       */
     int          reliable;                        /* 1=reliable, 0=not reliable  */
     int          n_scores;                        /* valid entries in scores[]   */
     EldcScoreItem scores[ELD_LIB_MAX_SCORES];     /* top-N scores, descending    */

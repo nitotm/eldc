@@ -11,13 +11,13 @@ const MAX_SCORES: usize = 20;
 
 #[repr(C)]
 struct EldcScoreItem {
-    lang:  *const c_char,
-    score: c_float,
+    language: *const c_char,
+    score:    c_float,
 }
 
 #[repr(C)]
 struct EldcDetectResult {
-    lang:     *const c_char,
+    language: *const c_char,
     reliable: c_int,
     n_scores: c_int,
     scores:   [EldcScoreItem; MAX_SCORES],
@@ -63,9 +63,9 @@ fn main() {
         println!("\n-- detect_details --");
         let mut res: EldcDetectResult = std::mem::zeroed();
         details(c("Bonjour le monde").as_ptr(), &mut res);
-        println!("language : {}  reliable: {}", r(res.lang), res.reliable == 1);
+        println!("language : {}  reliable: {}", r(res.language), res.reliable == 1);
         for i in 0..res.n_scores as usize {
-            println!("  {}: {:.4}", r(res.scores[i].lang), res.scores[i].score);
+            println!("  {}: {:.4}", r(res.scores[i].language), res.scores[i].score);
         }
 
         // ── 4. set_scores ────────────────────────────────────────────────────
@@ -73,7 +73,7 @@ fn main() {
         set_scores(2); // Default 3, Max 20, Min 1.
         let mut res2: EldcDetectResult = std::mem::zeroed();
         details(c("Was ist das?").as_ptr(), &mut res2);
-        println!("language: {}  n_scores: {}", r(res2.lang), res2.n_scores); // de, 2
+        println!("language: {}  n_scores: {}", r(res2.language), res2.n_scores); // de, 2
         set_scores(3);
 
         // ── 5. set_languages ─────────────────────────────────────────────────
