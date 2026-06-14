@@ -7,12 +7,12 @@
 	
 </div>
 
-Efficient language detector, C version (ELD-C or ELDC) is the fastest high-accuracy natural language detector / identification.  
+Efficient language detector C version (ELD-C or ELDC), is the fastest high-accuracy natural language detector.  
 ELDC can be compiled into a library, a command line executable, or installed as a python package with C extension.  
 
 ELD is also available in [PHP](https://github.com/nitotm/efficient-language-detector) (v3), [Javascript](https://github.com/nitotm/efficient-language-detector-js) (v2), and pure Python (v1 outdated). ELD-C is v3.
 
-> Making "the fastest" or most accurate language detector can be trivial using unlimited resources, but doing both things while being memory constrained, is what ELD-C has the edge on. It's 2x faster than Google's CLD2 (previously the fastest decent detector for the last 10 years), and 6x faster than Facebook's Fasttext. It's also more accurate than Lingua (based on the following benchmarks), and also 100x faster. ELD-C is basically a port from ELD-PHP v3.
+> Making "the fastest" or most accurate language identification tool can be trivial using unlimited resources, but doing both things while being memory constrained, is what ELD-C has the edge on. It's 2x faster than Google's CLD2 (previously the fastest decent detector for the last 10 years), and 6x faster than Facebook's Fasttext. It's also more accurate than Lingua (based on the following benchmarks), and also 100x faster. ELD-C is basically a port from ELD-PHP v3.
 
 1. [ELDC Python package](#eldc-python-package)
 2. [ELDC Library](#eldc-library)
@@ -133,11 +133,11 @@ $r2->n_scores; // int: 2
 
 // Set a language subset, returns validated languages
 $ffi->eldc_set_languages("en,fr,de");  // string: "en,fr,de"
-echo $ffi->eldc_detect("Hola mundo, bonito dia");  // string: "fr"
+$ffi->eldc_detect("Hola mundo, bonito dia");  // string: "fr"
 $ffi->eldc_set_languages("");  // reset
 
 $ffi->eldc_set_scheme("iso639-2t");  // Default "iso639-1"
-echo $ffi->eldc_detect("Hola mundo, bonito dia");  // string: "spa"
+$ffi->eldc_detect("Hola mundo, bonito dia");  // string: "spa"
 
 // Cleanup
 $ffi->eldc_close(); 
@@ -250,7 +250,7 @@ Other notes:
 -->
 Time execution benchmark:
 <img alt="timetable" width="800" src="https://raw.githubusercontent.com/nitotm/eldc/main/benchmark/time_table.svg">
-
+Accuracy:
 <!-- Accuracy table
 |                     | Tatoeba-50 | ELD test     | Sentences    | Word pairs   | Single words |
 |:--------------------|:----------:|:------------:|:------------:|:------------:|:------------:|
