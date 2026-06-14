@@ -55,7 +55,7 @@ print()
 # Pass "" or [] to clear the filter.
 print("-- set_languages() --")
 
-matched = eldc.set_languages("en,fr,es,de")
+matched = eldc.set_languages("en, fr, es, de")
 print(f"str input   matched: {matched}")          # ['en', 'fr', 'es', 'de']
 
 matched = eldc.set_languages(["it", "pt", "nl"])

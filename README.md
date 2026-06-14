@@ -124,7 +124,7 @@ $r->lang;  // string: "fr"
 $r->reliable;  // int: 1 (0 for false, 1 for true)
 $r->n_scores;  // int: 3 (default, up to)
 $r->scores[0]->lang;  // string: "fr"
-$r->scores[0]->score);  // float: 0.9016
+$r->scores[0]->score;  // float: 0.9016
 
 // Return up to X scores. Default 3, max 20
 $ffi->eldc_set_scores(2);  
