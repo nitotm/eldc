@@ -33,15 +33,18 @@ $ pip install eldc
 
 ### How to use?
 
-Full demo at `demo_eldc_package.py`
+Full demo at `examples/demo_eldc_package.py`
 ```python
 import eldc
 
 eldc.init()
 
+# eldc.LANGUAGES and eldc.LANGUAGES_ISO2T return list of all available languages
+
 # We can set a language filter
 eldc.set_languages(["en", "es", "fr"]) # also accepts string "en, es, fr"
 # returns a list of the set languages ['en', 'es', 'fr']
+eldc.set_languages([]) # reset all
 
 # ISO 639-2/T output, (default iso639-1)
 # eldc.set_scheme("iso639-2t")
@@ -61,7 +64,7 @@ print(r.reliable)   # True or False
 ## ELDC Library
 
 Compile a library for Linux `.so`, Windows `.dll` or Darwin (macOS) `.dylib`. To be used with your preferred programming language.  
-I included demo examples in the main folder for: Java, TypeScript/Node/Js, Go, Rust, .NET/C#, PHP, Ruby, and Python. (I've not tried all; Sonnet 4.6 made them)
+I included demo examples at `examples/` folder for: Java, TypeScript/Node/Js, Go, Rust, .NET/C#, PHP, Ruby, and Python. (Not 100% validated yet)
 
 ### Installation
 
@@ -91,7 +94,7 @@ cl /O2 /LD /DELD_BUILD_DLL eldc_lib.c /Fe:eldc.dll
 
 ### How to use?
 
-Find complete demos at the root folder of this repository, for each programming language: `demo_eldc_lib.py`, `demo_eldc_lib.ts`, `demo_eldc_lib.go`, etc.  
+Find complete demos at the root folder of this repository, for each programming language `examples/`: `demo_eldc_lib.py`, `demo_eldc_lib.ts`, `demo_eldc_lib.go`, etc.  
 Here is a simple demo in PHP, as it is quite readable.
 ```php
 $ffi = FFI::cdef('
