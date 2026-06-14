@@ -39,17 +39,18 @@ import eldc
 
 eldc.init()
 
-# We can set a language filter (set once at startup)
-eldc.set_languages("en,es,fr,de,pt")
+# We can set a language filter
+eldc.set_languages(["en", "es", "fr"]) # also accepts string "en, es, fr"
+# returns a list of the set languages ['en', 'es', 'fr']
 
 # ISO 639-2/T output, (default iso639-1)
 # eldc.set_scheme("iso639-2t")
 
-# simple detect, returns a string with language code
+# simple detect, returns a string with language code, or "und" for undetermined
 eldc.detect("Bonjour le monde") # 'fr'
 
-# We can change up to how many scores we want, default 3, max 20
-eldc.set_scores(2)
+# for detect_details() we can choose up to how many scores we want
+eldc.set_scores(2) # default 3, max 20
 
 r = eldc.detect_details("Hola mundo")
 print(r.language)   # 'es'
