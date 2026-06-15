@@ -7,6 +7,8 @@
 	
 </div>
 
+> This software is still unstable. Do not use it in production yet.
+
 Efficient language detector C version (ELD-C or ELDC), is the fastest high-accuracy natural language detector.  
 ELDC can be compiled into a library, a command line executable, or installed as a python package with C extension.  
 
@@ -219,7 +221,7 @@ This feat would be meaningless if it weren't for the fact that it could also be 
 
 | URL                                                      | Version      | Language     |
 |:---------------------------------------------------------|:-------------|:-------------|
-| https://github.com/nitotm/eldc/                          | 3.0.0        | C            |
+| https://github.com/nitotm/eldc/                          | 0.1.2        | C            |
 | https://github.com/pemistahl/lingua-py                   | 2.0.2        | Python       |
 | https://github.com/facebookresearch/fastText             | 0.9.2        | C++          |
 | https://github.com/CLD2Owners/cld2                       | Aug 21, 2015 | C++          |
