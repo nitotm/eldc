@@ -32,14 +32,8 @@
 #endif
 #include <math.h>
 
-#if defined(__has_include) && __has_include("large_db.h")
-#  include "large_db.h"
-#endif
 #include "eld_core.c"
 
-#ifndef ELD_HT_BITS
-#  define ELD_HT_BITS 21
-#endif
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * Module-level configuration
@@ -48,8 +42,7 @@ static uint64_t _cfg_lang_mask = (uint64_t)-1;
 static int      _cfg_subset    = 0;
 static int      _cfg_scheme    = 0;   /* 0=iso639-1, 1=iso639-2t */
 static int      _cfg_scores    = 3; /* min 1; N=top-N in detect_details */
-static int      _cfg_bits      = ELD_HT_BITS; /* hash-table size: ELD_HT_BITS, or +1 via set_faster(True) */
-static int      _cfg_inited    = 0; /* 1 once init() has been called; blocks further set_faster() calls */
+static int      _cfg_inited    = 0; /* 1 once init() has been called; */
 
 /* Pre-interned PyUnicode objects for all language codes in both schemes.
  *   _lang_str[0][i]  ISO 639-1 code  e.g. "fr"  (2-letter)
@@ -408,37 +401,13 @@ static PyObject *py_set_scheme(PyObject *module, PyObject *args)
     Py_RETURN_NONE;
 }
 
-/* Makes 2x size ngram hastable, double memory use,  minimal speedup */
-static PyObject *py_set_faster(PyObject *module, PyObject *args)
-{
-    PyObject *arg;
-
-    /* 1. Parse the arguments from Python */
-    if (!PyArg_ParseTuple(args, "O", &arg)) return NULL;
-
-    /* 2. Check initialization status first */
-    if (_cfg_inited == 1) {
-        PyErr_SetString(PyExc_RuntimeError, "Execute set_faster() before init()");
-        return NULL;
-    }
-
-    /* 3. Check type and apply */
-    if (PyBool_Check(arg)) {
-        _cfg_bits = (arg == Py_True) ? ELD_HT_BITS + 1 : ELD_HT_BITS;
-    } else {
-        PyErr_SetString(PyExc_TypeError, "set_faster expects bool");
-        return NULL;
-    }
-    
-    Py_RETURN_NONE;
-}
 
 /* init() / reinit(): same operation, init() is the primary name.
  * Calling init() again with a different ht_bits is always safe — it frees
  * the old table and allocates a fresh one.  Do this before any detection. */
 static PyObject *py_init(PyObject *module, PyObject *Py_UNUSED(ignored))
 {
-    init_detector(_cfg_bits);
+    init_detector();
 	 _cfg_inited = 1;
     Py_RETURN_NONE;
 }
@@ -484,13 +453,7 @@ static PyMethodDef eldc_methods[] = {
 
     {"set_scheme",    py_set_scheme,    METH_VARARGS,
      "set_scheme(scheme: str) -> None\n"
-     "Output scheme: 'iso639-1' (default, 'en') or 'iso639-2t' ('eng')."},
-	  
-    {"set_faster",    py_set_faster,    METH_VARARGS,
-     "set_faster(bool) -> None\n"
-     "Call before init()"
-	  "  False — 32 MB table (default, recommended)\n"
-	  "  True — 64 MB table (marginal speedup)"},	  
+     "Output scheme: 'iso639-1' (default, 'en') or 'iso639-2t' ('eng')."}, 
 
     {"init",          py_init,          METH_NOARGS,
      "init() -> None\n"
@@ -508,8 +471,8 @@ PyMODINIT_FUNC PyInit__eldc(void)
     if (PyType_Ready(&EldcResult_Type) < 0) return NULL;
 
     /* No init_detector() here: the hash table is NOT loaded on import.
-     * Call eldc.init() (optionally with ht_bits) before any detection.
-     * This keeps import cheap — no 32 MB allocation just for importing. */
+     * Call eldc.init()
+     * This keeps import cheap — no 16 MB allocation just for importing. */
 
     PyObject *m = PyModule_Create(&eldc_module_def);
     if (!m) return NULL;

@@ -40,16 +40,12 @@ public class demo_eldc_lib {
         String  eldc_set_languages(String codes);
         void    eldc_set_scheme(String scheme);
         void    eldc_set_scores(int n);
-        void    eldc_set_faster(int flag);
     }
 
     static String lang(Pointer p) { return p != null ? p.getString(0) : "und"; }
 
     public static void main(String[] args) {
         var lib = EldcLib.LIB;
-
-        // ── 0. set_faster (Not worth it. Call before init()) ─────────────────
-        // lib.eldc_set_faster(1); // 64 MB table (32MB default) Minimal speedup
 
         // ── 1. init ──────────────────────────────────────────────────────────
         lib.eldc_init();

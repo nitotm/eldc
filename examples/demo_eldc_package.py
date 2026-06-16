@@ -10,11 +10,6 @@ import warnings
 import concurrent.futures
 import eldc   # the Python wrapper around _eldc
 
-# ── 0. Optional set_faster, not recomended ────────────────────────────────────
-# Must be called before init(). 
-#   eldc.set_faster(false)  → 32 MB hashtable (default, recommended)
-#   eldc.set_faster(true)   → 64 MB hashtable (marginal speedup)
-
 # ── 1. Initialise ────────────────────────────────────────────────────────────
 # Must be called before any detection.  Loads the n-gram DB into a hash table.
 eldc.init()
@@ -42,7 +37,7 @@ print()
 # Minimum 1 (detect_details always returns scores).  Default: 3. Max 20.
 print("-- set_scores(10) --")
 eldc.set_scores(10)
-result = eldc.detect_details("Was ist das? A ship. Todo bien en la costa.")
+result = eldc.detect_details("Was ist das? Todo bien en la costa.")
 print(f"language : {result.language}")            # de
 print(f"scores   : {result.scores}")              # top-10 only
 eldc.set_scores(3)                                # reset to default

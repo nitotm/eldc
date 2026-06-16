@@ -134,7 +134,6 @@ static void eld_print_help(const char *prog, int show_threads)
         "  -h, --help              This message\n"
         "      --list-languages    Print all supported codes and exit\n"
         "  -v, --verbose           Loading info, timing, throughput\n"
-        "      --faster            Uses 2x hashtable (32 MB → 64 MB), minimal speedup\n"
         "  -l, --languages CODES   Restrict to a subset, e.g. -l \"es,en,de,fr\"\n"
         "                          Accepts ISO 639-1 or ISO 639-2/T codes.\n"
         "  -s, --scores [N]        Output compact JSON with top-N normalised [0,1] scores\n"

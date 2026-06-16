@@ -111,10 +111,6 @@ ELD_API void eldc_set_scheme(const char *scheme);
  * Reliability is always computed regardless of this setting. */
 ELD_API void eldc_set_scores(int n);
 
-/* Switch hash-table size. Must be called before eldc_init()
- *   0 — 32 MB (default)
- *   1 — 64 MB (marginal speedup; rebuilds the table immediately) */
-ELD_API void eldc_set_faster(int flag);
 
 /* ── Detection ───────────────────────────────────────────────────────────── */
 

@@ -45,10 +45,6 @@ fn main() {
         let set_lang:  Symbol<unsafe extern "C" fn(*const c_char) -> *const c_char> = lib.get(b"eldc_set_languages\0").unwrap();
         let set_scheme:Symbol<unsafe extern "C" fn(*const c_char)>              = lib.get(b"eldc_set_scheme\0").unwrap();
         let set_scores:Symbol<unsafe extern "C" fn(c_int)>                      = lib.get(b"eldc_set_scores\0").unwrap();
-        let set_faster:Symbol<unsafe extern "C" fn(c_int)>                      = lib.get(b"eldc_set_faster\0").unwrap();
-
-        // ── 0. set_faster (Not worth it. Call before init()) ─────────────────
-        // set_faster(1);  // 64 MB table (32MB default) Minimal speedup.
 
         // ── 1. init ──────────────────────────────────────────────────────────
         init();

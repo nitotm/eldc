@@ -37,13 +37,9 @@ module ELD
   attach_function :eldc_set_languages,  [:string],                    :string
   attach_function :eldc_set_scheme,     [:string],                    :void
   attach_function :eldc_set_scores,     [:int],                       :void
-  attach_function :eldc_set_faster,     [:int],                       :void
 
   def self.lang(ptr) = ptr.null? ? 'und' : ptr.read_string
 end
-
-# ── 0. set_faster (Not worth it. Call before init) ─────────────────────────
-# ELD.eldc_set_faster(1)  # 64 MB table
 
 # ── 1. init ──────────────────────────────────────────────────────────────────
 ELD.eldc_init

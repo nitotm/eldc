@@ -12,7 +12,7 @@
  * the wrapper, and the binary runs ~7% faster on real workloads.
  *
  * Custom DB or hash-table size:
- *   gcc ... -DELD_HT_BITS=22 -DELD_DB_INCLUDE='"my_db.h"' ...
+ *   gcc ... -DELD_DB_INCLUDE='"my_db.h"' ...
  *
  * Thread safety: see eld_core.c header comment.
  *
@@ -61,7 +61,6 @@ int main(int argc, char *argv[])
 {
     EldConfig cfg = { 0, 0, 0, (uint64_t)-1, 0 };
     int   verbose           = 0;
-    int   ht_bits           = 21;
     char *input_text        = NULL;
     int   force_interactive = 0;
 
@@ -73,8 +72,6 @@ int main(int argc, char *argv[])
             print_lang_list(); return 0;
         } else if (!strcmp(a,"-v")||!strcmp(a,"--verbose")) {
             verbose = 1;
-        } else if (!strcmp(a,"--faster")) {
-            ht_bits = 22;
         } else if (!strcmp(a,"--interactive")) {
             force_interactive = 1;
         } else if (!strcmp(a,"-r")||!strcmp(a,"--reliable")) {
@@ -117,9 +114,7 @@ int main(int argc, char *argv[])
     }
 
     if (verbose) {
-        fprintf(stderr,"Loading (HT_BITS=%d, %u slots, scheme=%s",
-                ht_bits, 1u<<ht_bits,
-                g_scheme==SCHEME_ISO639_2T?"iso639-2t":"iso639-1");
+        fprintf(stderr,"Loading (scheme=%s",g_scheme==SCHEME_ISO639_2T?"iso639-2t":"iso639-1");
         if (cfg.subset) {
             int cnt=0; for(int i=0;i<MAX_LANGUAGES;i++) if((cfg.lang_mask>>i)&1) cnt++;
             fprintf(stderr,", filter=%d lang%s", cnt, cnt==1?"":"s");
@@ -128,7 +123,7 @@ int main(int argc, char *argv[])
     }
 
     clock_t t0 = clock();
-    init_detector(ht_bits);
+    init_detector();
 
     if (verbose) {
         fprintf(stderr,"Done! (%.1f ms)\n----------------------------------------\n",

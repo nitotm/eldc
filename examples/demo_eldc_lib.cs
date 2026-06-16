@@ -36,13 +36,9 @@ static class Eldc {
     [DllImport(LIB, EntryPoint="eldc_set_languages")] public static extern IntPtr SetLanguages(string codes);
     [DllImport(LIB, EntryPoint="eldc_set_scheme")]    public static extern void   SetScheme(string scheme);
     [DllImport(LIB, EntryPoint="eldc_set_scores")]    public static extern void   SetScores(int n);
-    [DllImport(LIB, EntryPoint="eldc_set_faster")]    public static extern void   SetFaster(int flag);
 }
 
 static string S(IntPtr p) => p != IntPtr.Zero ? Marshal.PtrToStringAnsi(p)! : "und";
-
-// ── 0. set_faster (Not worth it. Call before init()) ─────────────────────────
-// Eldc.SetFaster(1);  // 64 MB table (32MB default) Minimal speedup.
 
 // ── 1. init ──────────────────────────────────────────────────────────────────
 Eldc.Init();

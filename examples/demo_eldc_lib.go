@@ -29,7 +29,6 @@ extern const char *eldc_detect_details(const char *text, EldcDetectResult *r);
 extern const char *eldc_set_languages(const char *codes);
 extern void        eldc_set_scheme(const char *scheme);
 extern void        eldc_set_scores(int n);
-extern void        eldc_set_faster(int flag);
 */
 import "C"
 import (
@@ -42,8 +41,6 @@ func gs(p *C.char) string { return C.GoString(p) }
 func free(p *C.char)      { C.free(unsafe.Pointer(p)) }
 
 func main() {
-   // ── 0. set_faster (Not worth it. Call before init()) ─────────────────────
-	// C.eldc_set_faster(1) // 64 MB table (32MB default) Minimal speedup.
 
 	// ── 1. init ──────────────────────────────────────────────────────────────
 	C.eldc_init()

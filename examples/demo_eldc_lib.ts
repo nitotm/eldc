@@ -43,10 +43,6 @@ const eldc_detect_details = lib.func('const char *eldc_detect_details(const char
 const eldc_set_languages  = lib.func('const char *eldc_set_languages(const char *codes)');
 const eldc_set_scheme     = lib.func('void eldc_set_scheme(const char *scheme)');
 const eldc_set_scores     = lib.func('void eldc_set_scores(int n)');
-const eldc_set_faster     = lib.func('void eldc_set_faster(int flag)');
-
-// ── 0. set_faster (Not worth it. Call before init()) ─────────────────────────
-// eldc_set_faster(1);  // 64 MB table (32MB default) Minimal speedup.
 
 // ── 1. init ──────────────────────────────────────────────────────────────────
 eldc_init();

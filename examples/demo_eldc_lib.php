@@ -30,11 +30,7 @@ $ffi = FFI::cdef('
     const char *eldc_set_languages(const char *codes);
     void        eldc_set_scheme(const char *scheme);
     void        eldc_set_scores(int n);
-    void        eldc_set_faster(int flag);
 ', $lib_name);
-
-// ── 0. set_faster (Not worth it. Call before init()) ─────────────────────────
-// $ffi->eldc_set_faster(1);  // 64 MB table (32MB default) Minimal speedup.
 
 // ── 1. init ──────────────────────────────────────────────────────────────────
 $ffi->eldc_init();

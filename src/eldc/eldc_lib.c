@@ -13,7 +13,7 @@
  *     cl /O2 /LD /DELD_BUILD_DLL eldc_lib.c /Fe:eldc.dll
  *
  *   Custom DB or larger hash table:
- *     gcc ... -DELD_DEFAULT_HT_BITS=22 -DELD_DB_INCLUDE='"my_db.h"' ...
+ *     gcc ... -DELD_DB_INCLUDE='"my_db.h"' ...
  */
 
 #ifndef _WIN32
@@ -22,32 +22,22 @@
 #  endif
 #endif
 
-#if defined(__has_include) && __has_include("large_db.h")
-#  include "large_db.h"
-#endif
-
 #include "eld_core.c"
 #include "eldc_lib.h"
-
-/* ── Default hash table size ─────────────────────────────────────────────── */
-#ifndef ELD_DEFAULT_HT_BITS
-#  define ELD_DEFAULT_HT_BITS 21   /* 32 MB; override: -DELD_DEFAULT_HT_BITS=22 */
-#endif
 
 /* ── Library-level config ────────────────────────────────────────────────── */
 static int      _lib_scores    = 3; /* min 1; detect_details always returns scores */
 static int      _lib_scheme    = 0;
 static uint64_t _lib_lang_mask = (uint64_t)-1;
 static int      _lib_subset    = 0;
-static int      _ht_bits       = ELD_DEFAULT_HT_BITS;
 
 /*
  * No auto-init on library load (by design)
  *
  * Loading libeldc.so/.dll does NOT allocate the n-gram hash table — callers
  * must call eldc_init() once before detection.  This keeps the cost of
- * merely *linking against* the library low: a process that loads it but
- * never calls a detect function never pays the ~32 MB table allocation.
+ * merely *linking against* the library at zero: a process that loads it but
+ * never calls a detect function never pays the ~16 MB table allocation.
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -55,12 +45,12 @@ static int      _ht_bits       = ELD_DEFAULT_HT_BITS;
  * ═══════════════════════════════════════════════════════════════════════════ */
 ELD_API void eldc_init(void)
 {
-    init_detector(_ht_bits);
+    init_detector();
 }
 
 ELD_API void eldc_close(void)
 {
-    free(ht); ht = NULL; ht_sz = 0; ht_mask = 0;
+    ht = NULL; ht_sz = 0; ht_mask = 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -144,17 +134,6 @@ ELD_API void eldc_set_scores(int n)
     _lib_scores = n;
 }
 
-ELD_API void eldc_set_faster(int flag)
-{
-	if (__builtin_expect(ht, 0)) {
-        fprintf(stderr, "eldc error: library already initialized. Call eldc_set_faster() before eldc_init().\n");
-        return;
-    }
-    int new_bits = flag ? 22 : 21;
-    if (new_bits != _ht_bits) {
-        _ht_bits = new_bits;
-    }
-}
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * Detection

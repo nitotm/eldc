@@ -115,7 +115,6 @@ $ffi = FFI::cdef('
     const char *eldc_set_languages(const char *codes);
     void        eldc_set_scheme(const char *scheme);
     void        eldc_set_scores(int n);
-    void        eldc_set_faster(int flag);
 ', './libeldc.so');  // Windows: 'eldc.dll', macOS: './libeldc.dylib'
 
 $ffi->eldc_init();
@@ -189,7 +188,6 @@ If we use `--scores` or `--reliable`, it will return JSON, if not, a simple unqu
 -h, --help              This message
     --list-languages    Print all supported codes and exit
 -v, --verbose           Loading info, timing, throughput
-    --faster            Uses 2x hashtable (32 MB → 64 MB), minimal speedup
 -l, --languages CODES   Restrict to a subset, e.g. -l "es,en,de,fr"
                         Accepts ISO 639-1 or ISO 639-2/T codes.
 -s, --scores [N]        Output compact JSON with top-N normalised [0,1] scores
@@ -294,10 +292,9 @@ It is the default ELD language scheme. `--scheme iso639-1`
 ***
 
 ### More info
-* ELD-C executable is 26MB, and loads a 32MB hashtable (64MB if --faster), using a total of ~55MB of memory. 
+* ELD-C executable is 24MB, memory use is arround ~30MB. 
 * ELD-C only reads first 1000 bytes of the input string (benchmarks are fair, with all lines under), but could be modded, if you feel an increased `--limit` flag/option is necessary, open a discussion.
 * Unlike other versions of ELD, ELD-C only comes with the 'large' database size, as that is the optimal one, but other sizes could be added.
-* ELD-C is optimized for multi-detection, for single detection a B-tree would offer faster loading and lower memory usage than the current hashtable. I haven't anticipated this being the most common use case, but it could be optimized for.
 * Next improvement could be a better training data set, my own "small" 60GB of data are not as clean as I wish, `fineweb-2` looks good.
 
 #### Donations and suggestions

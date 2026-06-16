@@ -73,6 +73,31 @@
 #endif
 
 
+/* ── Hash table slot ─────────────────────────────────────────────────────
+ * 8 bytes per slot (was 16):
+ *   fp   : upper 32 bits of h64(ngram); 0 = empty-slot sentinel.
+ *   meta : bits[23:0] = offset into ELD_scores_blob / ELD_lang_ids_blob;
+ *          bits[31:24] = num_scores (max ~30 in practice, fits uint8_t).
+ * The table is prebuilt at compile time and embedded in large_db.h;
+ * init_detector() just points 'ht' at it — no calloc, no insertion loop.
+ * ─────────────────────────────────────────────────────────────────────── */
+typedef struct {
+    uint32_t fp;    /* fingerprint: upper 32 bits of h64(ngram); 0 = empty */
+    uint32_t meta;  /* (num_scores << 24) | data_ptr                        */
+} Slot;
+#include <stdint.h>  /* ensure uint32_t is available before large_db.h */
+
+/* ── splitmix64 ──────────────────────────────────────────────────────────
+ * Returns the full 64-bit hash.
+ *   Lower 32 bits → bucket index (& ht_mask).
+ *   Upper 32 bits → fingerprint stored in Slot.fp.
+ * Using both halves of one hash call costs nothing extra vs the old code
+ * that discarded the upper 32 bits. ─────────────────────────────────── */
+static inline uint64_t h64(uint64_t v) {
+    v ^= v >> 30; v *= 0xbf58476d1ce4e5b9ULL; v ^= v >> 27;
+    return v;
+}
+
 /* ── Database header ─────────────────────────────────────────────────────── */
 #ifdef ELD_DB_INCLUDE
 #  include ELD_DB_INCLUDE
@@ -101,18 +126,10 @@ static inline int is_cjk(uint32_t cp) {
 /* ── 2-byte tolower byte-pair table ─────────────────────────────────────── */
 static uint16_t g_tolower_bytes2[1920];
 
-/* ═══════════════════════════════════════════════════════════════════════════
- * Hash table
- * ═══════════════════════════════════════════════════════════════════════════ */
-typedef struct {
-    uint64_t key;
-    uint32_t data_ptr;
-    uint8_t  num_scores;
-    uint8_t  _pad[3];
-} Slot;
-static Slot    *ht      = NULL;
-static uint32_t ht_sz   = 0;
-static uint32_t ht_mask = 0;
+/* ── Hash table runtime state ────────────────────────────────────────────── */
+static const Slot *ht      = NULL;   /* points into ELD_hashtable (prebuilt)  */
+static uint32_t    ht_sz   = 0;
+static uint32_t    ht_mask = 0;
 
 /* ── Dedup set — ELD_THREAD_LOCAL: each thread owns its own dedup state ──── */
 #define DS_BITS 10
@@ -121,12 +138,6 @@ static uint32_t ht_mask = 0;
 static ELD_THREAD_LOCAL uint64_t g_ds_keys[DS_SIZE];
 static ELD_THREAD_LOCAL uint32_t g_ds_gen[DS_SIZE];
 static ELD_THREAD_LOCAL uint32_t g_call_gen = 0;
-
-/* ── splitmix64 ──────────────────────────────────────────────────────────── */
-static inline uint32_t h64(uint64_t v) {
-    v ^= v >> 30; v *= 0xbf58476d1ce4e5b9ULL; v ^= v >> 27;
-    return (uint32_t)v;
-}
 
 /* ── Output scheme ───────────────────────────────────────────────────────── */
 typedef enum { SCHEME_ISO639_1, SCHEME_ISO639_2T } Scheme;
@@ -193,9 +204,17 @@ typedef struct {
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * init_detector()
+ *
+ * Sets up Unicode tables and points 'ht' at the prebuilt hash table embedded
+ * in large_db.h.  No calloc, no insertion loop — init is now nearly instant.
  * ═══════════════════════════════════════════════════════════════════════════ */
-static void init_detector(int ht_bits)
+static void init_detector(void)
 {
+    /* Catch accidental slot-layout drift between large_db.h and eld_core.c. */
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+    _Static_assert(sizeof(Slot) == 8, "Slot must be exactly 8 bytes");
+#endif
+
     memcpy(letter_bits, LETTER_BITS, sizeof letter_bits);
     memcpy(cjk_bits,    CJK_BITS,    sizeof cjk_bits);
 
@@ -206,37 +225,9 @@ static void init_detector(int ht_bits)
                                         |  (0x80 | (out & 0x3F)));
     }
 
-    free(ht);
-    ht_sz   = 1u << ht_bits;
-    ht_mask = ht_sz - 1u;
-    ht = (Slot *)calloc(ht_sz, sizeof(Slot));
-    if (!ht) { fprintf(stderr, "calloc failed\n"); exit(1); }
-
-    /* The open-addressing insert below (`while (ht[h].key) h = (h+1) & ht_mask`)
-     * only terminates if at least one slot stays empty.  With the documented
-     * DB and HT_BITS values there's a huge margin, but a custom build with a
-     * smaller -DELD_HT_BITS and/or a larger -DELD_DB_INCLUDE could violate
-     * that and spin forever.  Catch it here with a single comparison. */
-    if ((uint32_t)ELD_ngrams_count >= ht_sz) {
-        fprintf(stderr,
-                "eldc: hash table too small (%u slots) for %d n-grams; "
-                "rebuild with a larger -DELD_HT_BITS\n",
-                ht_sz, ELD_ngrams_count);
-        exit(1);
-    }
-
-    for (int i = 0; i < ELD_ngrams_count; i++) {
-        if (__builtin_expect(i + 8 < ELD_ngrams_count, 1)) {
-            uint64_t kn; memcpy(&kn, ELD_ngrams[i+8].ngram, 8);
-            if (kn) __builtin_prefetch(&ht[h64(kn) & ht_mask], 1, 1);
-        }
-        uint64_t k; memcpy(&k, ELD_ngrams[i].ngram, 8);
-        if (!k) continue;
-        uint32_t h = h64(k) & ht_mask;
-        while (ht[h].key) h = (h+1) & ht_mask;
-        ht[h].key = k; ht[h].data_ptr = ELD_ngrams[i].data_ptr;
-        ht[h].num_scores = ELD_ngrams[i].num_scores;
-    }
+    ht      = ELD_hashtable;    /* prebuilt, lives in read-only data segment  */
+    ht_sz   = ELD_HT_SZ;
+    ht_mask = ELD_HT_MASK;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -364,22 +355,25 @@ static const char *detect_ex(const char *text,
     float ls[MAX_LANGUAGES];
     for (int i = 0; i < MAX_LANGUAGES; i++) ls[i] = 1.0f;
 
-    struct { uint64_t key; uint32_t hv; } nk[500];
+    struct { uint32_t fp; uint32_t hv; } nk[500];
     int nk_cnt = 0;
 
-#define ADD_NGRAM(k64) do {                                         \
-    if (nk_cnt < 500) {                                             \
-        uint32_t _hv = h64(k64);                                   \
-        uint32_t _dh = (_hv >> (32-DS_BITS)) & DS_MASK;            \
-        int _dup = 0;                                               \
-        while (g_ds_gen[_dh] == gen) {                             \
-            if (g_ds_keys[_dh] == (k64)) { _dup=1; break; }       \
-            _dh = (_dh+1) & DS_MASK;                               \
-        }                                                           \
-        if (!_dup) {                                                \
-            g_ds_gen[_dh]=gen; g_ds_keys[_dh]=(k64);              \
-            nk[nk_cnt].key=(k64); nk[nk_cnt].hv=_hv; nk_cnt++;    \
-        }                                                           \
+#define ADD_NGRAM(k64) do {                                              \
+    if (nk_cnt < 500) {                                                  \
+        uint64_t _h  = h64(k64);                                        \
+        uint32_t _hv = (uint32_t)_h;                                    \
+        uint32_t _fp = (uint32_t)(_h >> 32);                            \
+        if (__builtin_expect(!_fp, 0)) _fp = 1u;  /* 0 = empty sentinel */ \
+        uint32_t _dh = (_hv >> (32-DS_BITS)) & DS_MASK;                 \
+        int _dup = 0;                                                    \
+        while (g_ds_gen[_dh] == gen) {                                  \
+            if (g_ds_keys[_dh] == (k64)) { _dup=1; break; }            \
+            _dh = (_dh+1) & DS_MASK;                                    \
+        }                                                                \
+        if (!_dup) {                                                     \
+            g_ds_gen[_dh]=gen; g_ds_keys[_dh]=(k64);                   \
+            nk[nk_cnt].fp=_fp; nk[nk_cnt].hv=_hv; nk_cnt++;           \
+        }                                                                \
     } } while(0)
 
     const unsigned char *p = (const unsigned char *)buf, *end = p + len;
@@ -429,10 +423,12 @@ static const char *detect_ex(const char *text,
     for (int i = 0; i < nk_cnt; i++) {
         if (__builtin_expect(i+PF_DIST < nk_cnt, 1))
             __builtin_prefetch(&ht[nk[i+PF_DIST].hv & ht_mask], 0, 1);
-        uint64_t k64 = nk[i].key; uint32_t lh = nk[i].hv & ht_mask;
-        while (ht[lh].key) {
-            if (ht[lh].key == k64) {
-                uint32_t off = ht[lh].data_ptr; uint8_t n = ht[lh].num_scores;
+        uint32_t fp = nk[i].fp; uint32_t lh = nk[i].hv & ht_mask;
+        while (ht[lh].fp) {
+            if (ht[lh].fp == fp) {
+                uint32_t meta = ht[lh].meta;
+                uint32_t off  = meta & 0x00FFFFFFu;
+                uint8_t  n    = (uint8_t)(meta >> 24);
                 for (uint8_t j = 0; j < n; j++)
                     ls[ELD_lang_ids_blob[off+j]] *= ELD_scores_blob[off+j];
                 break;

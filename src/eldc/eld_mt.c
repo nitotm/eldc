@@ -182,7 +182,6 @@ int main(int argc, char **argv)
     EldConfig   cfg       = { 0, 0, 0, (uint64_t)-1, 0 };
     int         n_threads = get_nprocs_mt();
     int         verbose   = 0;
-    int         ht_bits   = 21;
 
     const char *text_args[1024];
     int         n_text_args = 0;
@@ -211,9 +210,6 @@ int main(int argc, char **argv)
 
         } else if (!strcmp(a,"-r")||!strcmp(a,"--reliable")) {
             cfg.reliable = 1;
-
-        } else if (!strcmp(a,"--faster")) {
-            ht_bits = 22;
 
         } else if (!strcmp(a,"-v")||!strcmp(a,"--verbose")) {
             verbose = 1;
@@ -247,7 +243,7 @@ int main(int argc, char **argv)
         }
     }
 
-    init_detector(ht_bits);
+    init_detector();
 
     struct timespec ts0 = {0};
     if (verbose) clock_gettime(CLOCK_MONOTONIC, &ts0);

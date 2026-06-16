@@ -66,15 +66,9 @@ lib.eldc_set_scheme.argtypes     = [ctypes.c_char_p]
 lib.eldc_set_scores.restype      = None
 lib.eldc_set_scores.argtypes     = [ctypes.c_int]
 
-lib.eldc_set_faster.restype      = None
-lib.eldc_set_faster.argtypes     = [ctypes.c_int]
 
 # ── Helper: decode c_char_p safely ───────────────────────────────────────────
 def s(b): return b.decode("utf-8") if b else ""
-
-# ── 0. eldc_set_faster() — larger hash table, call before init() ─────────────
-# 0 → 32 MB (default).  1 → 64 MB. Not recommended, minimal speedup.
-# lib.eldc_set_faster(1)
 
 # ── 1. Initialise ────────────────────────────────────────────────────────────
 # eldc_init() is the only required call before detection.
