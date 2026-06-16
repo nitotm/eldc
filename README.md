@@ -211,13 +211,13 @@ Examples: (on Windows use `eldc.exe`)
 
 **Contenders**
 
-| URL                                                      | Version      | Language     |
-|:---------------------------------------------------------|:-------------|:-------------|
-| https://github.com/nitotm/eldc/                          | 0.1.2        | C            |
-| https://github.com/pemistahl/lingua-py                   | 2.0.2        | Python       |
-| https://github.com/facebookresearch/fastText             | 0.9.2        | C++          |
-| https://github.com/CLD2Owners/cld2                       | Aug 21, 2015 | C++          |
-| https://github.com/wooorm/franc                          | 7.2.0        | Javascript   |
+| URL                                                      | Version      | Core Language  |
+|:---------------------------------------------------------|:-------------|:---------------|
+| https://github.com/nitotm/eldc/                          | 0.1.2        | C              |
+| https://github.com/pemistahl/lingua-py                   | 2.0.2        | Rust           |
+| https://github.com/facebookresearch/fastText             | 0.9.2        | C++            |
+| https://github.com/CLD2Owners/cld2                       | Aug 21, 2015 | C++            |
+| https://github.com/wooorm/franc                          | 7.2.0        | Javascript     |
 
 
 Benchmarks:
