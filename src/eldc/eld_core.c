@@ -478,7 +478,7 @@ static const char *detect(const char *text)
  * ═══════════════════════════════════════════════════════════════════════════ */
 static int eld_is_reliable(int best_idx, float best_ns, float second_ns, int nk)
 {
-	 if (nk < 3)                                       return 0;
+    if (nk < 3)                                       return 0;
     if (best_idx < 0 || best_ns <= 0.0f)              return 0;
     if (best_ns < 0.82f * ELD_avg_score[best_idx])    return 0;
     if ((best_ns - second_ns) <= 0.04f)               return 0;

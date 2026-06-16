@@ -209,12 +209,6 @@ Examples: (on Windows use `eldc.exe`)
 
 ## Benchmarks
 
-ELD-C comes out as the fastest detector. For reference, with the command line executable an i7-4770 can process files at over 1M lines per second (1GB/15sec.) with only 1 thread.  
-
-I also included a multithreaded version, that can process files almost as fast as the I/O can support, with multithread an i7-4770 jumps to 4M lines per second or 1GB of text in 5 seconds (read 21M lines + classify + store results). In short, it's unnecessarily fast.  
-
-This feat would be meaningless if it weren't for the fact that it could also be one of the most accurate detectors; which it is for this benchmark. Accuracy is more benchmark dependent, but it is clearly among the most accurate detectors.
-
 **Contenders**
 
 | URL                                                      | Version      | Language     |
@@ -272,6 +266,12 @@ Accuracy:
 * **fasttext** does not have a built-in subset option, so to show its accuracy and speed potential I made two benchmarks, fasttext-all not being limited by any subset at any test  
 * <sup style="color:#08e">*</sup> Google's **CLD2** also lacks subset option, and it's difficult to make a subset even with its option `bestEffort = True`, as usually returns only one language, so it has a comparative disadvantage.
 * Time is normalized: (total lines * time) / processed lines
+
+ELD-C comes out as the fastest detector. For reference, with the command line executable an i7-4770 can process files at over 1M lines per second (1GB/15sec.) with only 1 thread.  
+
+I also included a multithreaded version, that can process files almost as fast as the I/O can support, with multithread an i7-4770 jumps to 4M lines per second or 1GB of text in 5 seconds (read 21M lines + classify + store results). In short, it's unnecessarily fast.  
+
+This feat would be meaningless if it weren't for the fact that it could also be one of the most accurate detectors; which it is for this benchmark. Accuracy is more benchmark dependent, but it is clearly among the most accurate detectors.
 
 ## Languages
 
