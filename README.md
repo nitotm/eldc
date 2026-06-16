@@ -224,12 +224,12 @@ Examples: (on Windows use `eldc.exe`)
 
 
 Benchmarks:
-* **Tatoeba**: *20MB*, short sentences from Tatoeba, 50 languages supported by all contenders, up to 10k lines each.
+* **Tatoeba**: *18MB*, short sentences from Tatoeba, 50 languages supported by all contenders, up to 10k lines each.
 > * For Tatoeba, I limited all detectors to the 50 languages subset, making the comparison as fair as possible.
 > * Also, Tatoeba is not part of **ELD** training dataset (nor tuning), but it is for **fasttext**
 * **ELD Test**: *10MB*, sentences from the 60 languages supported by ELD, 1000 lines each. Extracted from the 60GB of ELD training data.
 * **Sentences**: *8MB*, sentences from *Lingua* benchmark, minus unsupported languages and Yoruba which had broken characters.
-* **Word pairs** *1.5MB*, and **Single words** *870KB*, also from Lingua, same 53 languages.
+* **Word pairs** and **Single words**, ~*1MB*, also from Lingua, same 53 languages.
 
 Other notes:
 * **ELDC pyc** is eldc python package.
