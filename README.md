@@ -14,7 +14,7 @@ ELDC can be compiled into a library, a command line executable, or installed as 
 
 ELD is also available in [PHP](https://github.com/nitotm/efficient-language-detector) (v3), [Javascript](https://github.com/nitotm/efficient-language-detector-js) (v2), and pure Python (v1 outdated). ELD-C is v3.
 
-> Making "the fastest" or most accurate language identification tool can be trivial using unlimited resources, but doing both things while being memory constrained, is what ELD-C has the edge on. It's 2x faster than Google's CLD2 (previously the fastest decent detector for the last 10 years), and 6x faster than Facebook's Fasttext. It's also more accurate than Lingua (based on the following benchmarks), and also 100x faster. ELD-C is basically a port from ELD-PHP v3.
+> Making "the fastest" or most accurate language identification tool can be trivial using unlimited resources, but doing both things while being memory constrained, is what ELD-C has the edge on. It's 2x faster than **Google's CLD2** (previously the fastest decent detector for the last 10 years), and 6x faster than **Facebook's Fasttext**. It's also more accurate, based on the benchmarks below, than **Lingua** (referred to as the *most accurate*), and 100x faster for good measure.
 
 1. [ELDC Python package](#eldc-python-package)
 2. [ELDC Library](#eldc-library)
