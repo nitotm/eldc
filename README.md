@@ -12,10 +12,10 @@ It is a tool that identifies which language a text is written in. For example, `
 
 ---
 
-Efficient language detector C version (ELD-C or ELDC), is the fastest high-accuracy natural language detector.  
-ELDC can be compiled into a library, a command line executable, or installed as a python package with C extension.  
+Efficient language detector, written in C, is the fastest high-accuracy natural language detector.  
+ELDC can be compiled into a library, a command line executable, or easily installed as a python package.  
 
-ELD is also available in [PHP](https://github.com/nitotm/efficient-language-detector) (v3), [Javascript](https://github.com/nitotm/efficient-language-detector-js) (v2), and pure Python (v1 outdated). ELD-C is v3.
+ELD is also available in [PHP](https://github.com/nitotm/efficient-language-detector) (v3), [Javascript](https://github.com/nitotm/efficient-language-detector-js) (v2), and pure Python (v1 outdated). ELD-C (or ELDC) is v3.
 
 > Making "the fastest" or most accurate language identification tool can be trivial using unlimited resources, but doing both things while being memory constrained, is what ELD-C has the edge on. It's 2x faster than **Google's CLD2** (previously the fastest decent detector for the last 10 years), and 6x faster than **Facebook's Fasttext**. It's also more accurate, based on the benchmarks below, than **Lingua** (referred to as the *most accurate*), and 100x faster for good measure.
 
