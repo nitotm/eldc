@@ -7,7 +7,10 @@
 	
 </div>
 
-> This software is still unstable. Do not use it in production yet.
+**What is a language detector?**  
+It is a tool that identifies which language a text is written in. For example, `detect("Hola")` returns "es" for Spanish.
+
+---
 
 Efficient language detector C version (ELD-C or ELDC), is the fastest high-accuracy natural language detector.  
 ELDC can be compiled into a library, a command line executable, or installed as a python package with C extension.  
