@@ -1,0 +1,30 @@
+[tatoeba_50_v3]
+  Lines    : 418,882
+  Duration : 0.5177s
+  Accuracy : 98.67%
+
+[eld_test]
+  Lines    : 60,000
+  Duration : 0.1640s
+  Accuracy : 99.76%
+
+[sentences_v3]
+  Lines    : 52,141
+  Duration : 0.1390s
+  Accuracy : 99.41%
+
+[word_pairs_v3]
+  Lines    : 52,613
+  Duration : 0.0490s
+  Accuracy : 94.69%
+
+[single_words_v3]
+  Lines    : 52,036
+  Duration : 0.0400s
+  Accuracy : 83.41%
+
+========================================
+  Files processed : 5
+  Total lines     : 635,672
+  Avg duration    : 0.1819s
+  Avg accuracy    : 95.19%

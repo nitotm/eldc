@@ -3,6 +3,8 @@ import time
 
 BENCHMARKS = ["tatoeba_50_v3", "eld_test", "sentences_v3", "word_pairs_v3", "single_words_v3"]
 
+folder = "text_files/"
+
 tatoeba_50_langs = ["ar", "az", "be", "bg", "bn", "ca", "cs", "da", "de", "el", "en", "es",
                     "et", "eu", "fa", "fi", "fr", "gu", "he", "hi", "hr", "hu", "hy", "is",
                     "it", "ja", "ka", "ko", "lt", "lv", "ms", "nl", "no", "pl", "pt", "ro",
@@ -19,8 +21,8 @@ for test_name in BENCHMARKS:
     duration    = 0.0
 
     try:
-        with open(test_name + ".txt", encoding="utf-8") as tf, \
-             open(test_name + ".languages.txt", encoding="utf-8") as lf:
+        with open(folder + test_name + ".txt", encoding="utf-8") as tf, \
+             open(folder + test_name + ".languages.txt", encoding="utf-8") as lf:
 
             if (test_name == "tatoeba_50_v3"):
                 eldc.set_languages(tatoeba_50_langs)
