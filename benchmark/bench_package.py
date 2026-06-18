@@ -38,6 +38,7 @@ for test_name in BENCHMARKS:
 
                 start_time = time.perf_counter()
                 res        = eldc.detect(line)
+                #res       = eldc.detect_details(line).language
                 duration  += time.perf_counter() - start_time
 
                 total_lines += 1
@@ -54,7 +55,7 @@ for test_name in BENCHMARKS:
     print(f"[{test_name}]")
     print(f"  Lines    : {total_lines:,}")
     print(f"  Duration : {duration:.4f}s")
-    print(f"  Accuracy : {accuracy:.2f}%")
+    print(f"  Accuracy : {accuracy:.4f}%")
     print()
 
 if results:
@@ -66,4 +67,4 @@ if results:
     print(f"  Files processed : {len(results)}")
     print(f"  Total lines     : {total_lines:,}")
     print(f"  Avg duration    : {avg_duration:.4f}s")
-    print(f"  Avg accuracy    : {avg_accuracy:.2f}%")
+    print(f"  Avg accuracy    : {avg_accuracy:.4f}%")

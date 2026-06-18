@@ -98,7 +98,7 @@ foreach ($BENCHMARKS as $testName) {
     echo "[{$testName}]\n";
     echo "  Lines    : " . number_format($totalLines) . "\n";
     echo "  Duration : " . number_format($duration, 4) . "s\n";
-    echo "  Accuracy : " . number_format($accuracy, 2) . "%\n\n";
+    echo "  Accuracy : " . number_format($accuracy, 4) . "%\n\n";
 }
 
 $ffi->eldc_close();
@@ -112,6 +112,6 @@ if (!empty($results)) {
     echo "  Files processed : " . count($results) . "\n";
     echo "  Total lines     : " . number_format($totalLines) . "\n";
     echo "  Avg duration    : " . number_format($avgDuration, 4) . "s\n";
-    echo "  Avg accuracy    : " . number_format($avgAccuracy, 2) . "%\n";
+    echo "  Avg accuracy    : " . number_format($avgAccuracy, 4) . "%\n";
 }
 

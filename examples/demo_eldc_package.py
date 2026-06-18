@@ -17,13 +17,14 @@ eldc.init()
 # ── 2. detect() — fast path ──────────────────────────────────────────────────
 # Always returns a str: a language code or "und" if undetermined.
 print("-- detect() --")
-print(eldc.detect("Bonjour le monde"))           # fr
+print(eldc.detect("Bonjour le monde"))          # fr
 print(eldc.detect("12345 !@#"))                 # und  (no recognisable text)
-
+# Use detect_mt() for multi-threaded parallel Python threads
 
 # ── 3. detect_details() — full result ───────────────────────────────────────
 # Always returns reliability + top-N scores.
-# Result attributes: .language (str|None), .reliable (bool), .scores (dict)
+# Result attributes: .language (str), .reliable (bool), .scores (dict)
+# multi-threaded capable by default
 print("-- detect_details() --")
 result = eldc.detect_details("Bonjour le monde")
 print(f"language : {result.language}")
@@ -88,7 +89,7 @@ print("-- Result comparisons --")
 result = eldc.detect_details("Bonjour le monde")
 print(result == "fr")                            # True
 print(result == "en")                            # False
-print(bool(eldc.detect_details("12345 !@#")))   # False (language is None)
+print(bool(eldc.detect_details("12345 !@#")))    # False (language is "und")
 print()
 
 
@@ -109,6 +110,6 @@ texts = [
     "Ciao mondo", "Привет мир", "مرحبا بالعالم", "你好世界",
 ]
 with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-    langs = list(pool.map(eldc.detect, texts))
+    langs = list(pool.map(eldc.detect_mt, texts))
 for text, lang in zip(texts, langs):
     print(f"  {lang}  {text}")

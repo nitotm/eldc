@@ -76,7 +76,7 @@
 /* ── Hash table slot ─────────────────────────────────────────────────────
  * 8 bytes per slot (was 16):
  *   fp   : upper 32 bits of h64(ngram); 0 = empty-slot sentinel.
- *   meta : bits[23:0] = offset into ELD_scores_blob / ELD_lang_ids_blob;
+ *   meta : bits[23:0] = offset into ELD_blob;
  *          bits[31:24] = num_scores (max ~30 in practice, fits uint8_t).
  * The table is prebuilt at compile time and embedded in large_db.h;
  * init_detector() just points 'ht' at it — no calloc, no insertion loop.
@@ -156,10 +156,9 @@ static int      g_subset    = 0;
  * Scoring constants and types
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ELD_NORM_FACTOR: exponent scale for the geometric-mean normalisation.
- * ns = 1 - raw^(-ELD_NORM_FACTOR / nk)
+/* ELD_NORM_FACTOR: exponent scale for score normalisation.
  * Changing this requires recalibrating ELD_avg_score[] in the database. */
-#define ELD_NORM_FACTOR 3.5f
+#define ELD_NORM_FACTOR 0.0001f
 
 /* Maximum scores that can be requested or returned. */
 #define ELD_MAX_SCORES  20
@@ -429,8 +428,13 @@ static const char *detect_ex(const char *text,
                 uint32_t meta = ht[lh].meta;
                 uint32_t off  = meta & 0x00FFFFFFu;
                 uint8_t  n    = (uint8_t)(meta >> 24);
-                for (uint8_t j = 0; j < n; j++)
-                    ls[ELD_lang_ids_blob[off+j]] *= ELD_scores_blob[off+j];
+                for (uint8_t j = 0; j < n; j++) {
+                    uint32_t p  = ELD_blob[off + j];
+                    uint32_t fb = p & 0xFFFFFF00u;  /* zero the lang_id byte → truncated float bits */
+                    float    s;
+                    memcpy(&s, &fb, 4);             /* type-pun: no conversion, compiles to MOVD   */
+                    ls[(uint8_t)p] += s;
+                }
                 break;
             }
             lh = (lh+1) & ht_mask;
@@ -472,16 +476,16 @@ static const char *detect(const char *text)
  * Reliability scoring
  *
  * A detection is "reliable" when:
- *   1. The top normalised score is >= 82% of that language's corpus average.
- *   2. The gap between top and second score is > 4 percentage points.
+ *   1. The top normalised score is >= 85% of that language's corpus average.
+ *   2. The gap between top and second score is > 2 percentage points.
  *      (If no second language matched, the gap condition is always satisfied.)
  * ═══════════════════════════════════════════════════════════════════════════ */
 static int eld_is_reliable(int best_idx, float best_ns, float second_ns, int nk)
 {
     if (nk < 3)                                       return 0;
     if (best_idx < 0 || best_ns <= 0.0f)              return 0;
-    if (best_ns < 0.82f * ELD_avg_score[best_idx])    return 0;
-    if ((best_ns - second_ns) <= 0.04f)               return 0;
+    if (best_ns < 0.85f * ELD_avg_score[best_idx])    return 0;
+    if ((best_ns - second_ns) <= 0.02f)               return 0;
     return 1;
 }
 
@@ -530,7 +534,8 @@ static int eld_normalize(const float raw[MAX_LANGUAGES], int nk,
 
     float inv_nk = -ELD_NORM_FACTOR / (float)nk;
     for (int i = 0; i < n; i++)
-        entries[i].ns = 1.0f - powf(entries[i].ns, inv_nk);
+        //entries[i].ns = 1.0f - powf(entries[i].ns, inv_nk); // =* scoring
+		  entries[i].ns = 1.0f - expf(inv_nk * entries[i].ns); // += scoring
 
     if (sort && !presorted && n > 1)
         qsort(entries, (size_t)n, sizeof(EldScoreEntry), eld_score_entry_cmp);
