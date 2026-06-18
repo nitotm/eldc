@@ -44,8 +44,6 @@ import eldc
 
 eldc.init()
 
-# eldc.LANGUAGES and eldc.LANGUAGES_ISO2T return list of all available languages
-
 # We can set a language filter
 eldc.set_languages(["en", "es", "fr"]) # also accepts string "en, es, fr"
 # returns a list of the set languages ['en', 'es', 'fr']
@@ -54,16 +52,19 @@ eldc.set_languages([]) # reset all
 # ISO 639-2/T output, (default iso639-1)
 # eldc.set_scheme("iso639-2t")
 
-# simple detect, returns a string with language code, or "und" for undetermined
+# Simple detect, returns a string with language code, or "und" for undetermined
 eldc.detect("Bonjour le monde") # 'fr'
+# Use detect_mt() for multi-threaded parallel Python threads
 
 # for detect_details() we can choose up to how many scores we want
 eldc.set_scores(2) # default 3, max 20
 
-r = eldc.detect_details("Hola mundo")
-print(r.language)   # 'es'
-print(r.scores)  # {'es': 0.80, 'pt': 0.57}  Scores are between 0 and 1
-print(r.reliable)   # True or False
+r = eldc.detect_details("Hola mundo") # multi-threaded capable by default
+print(r.language) # (str)  'es'
+print(r.scores)   # (dict) {'es': 0.80, 'pt': 0.57} Scores are between 0 and 1
+print(r.reliable) # (bool) True or False
+
+# eldc.LANGUAGES and eldc.LANGUAGES_ISO2T return list of all available languages
 ```
 
 ## ELDC Library
@@ -241,7 +242,7 @@ Other notes:
 |:----------------------|:------------:|:------------:|:------------:|:------------:|:------------:|
 | **ELDC <file>**       |     0.43"    |      0.19"   |      0.16"   |     0.05"    |     0.03"    |
 | **ELDC <file> -t 4**  |     0.18"    |      0.08"   |      0.06"   |     0.02"    |     0.01"    |
-| **ELDC pyc**          |     0.81"    |      0.26"   |      0.22"   |     0.08"    |     0.07"    |
+| **ELDC pyc**          |     0.62"    |      0.22"   |      0.17"   |     0.06"    |     0.04"    |
 | **Lingua**            |    98"       |     27"      |     24"      |     8.2"     |     5.9"     |
 | **fasttext-subset**   |    12"       |      2.7"    |      2.3"    |     1.2"     |     1.1"     |
 | **fasttext-all**      |     --       |      2.4"    |      2.0"    |     0.91"    |     0.73"    |
@@ -295,7 +296,7 @@ It is the default ELD language scheme. `--scheme iso639-1`
 ***
 
 ### More info
-* ELD-C executable is 24MB, memory use is arround ~30MB. 
+* ELD-C executable is 24MB, with a similar memory use. 
 * ELD-C only reads first 1000 bytes of the input string (benchmarks are fair, with all lines under), but could be modded, if you feel an increased `--limit` flag/option is necessary, open a discussion.
 * Unlike other versions of ELD, ELD-C only comes with the 'large' database size, as that is the optimal one, but other sizes could be added.
 * Next improvement could be a better training data set, my own "small" 60GB of data are not as clean as I wish, `fineweb-2` looks good.

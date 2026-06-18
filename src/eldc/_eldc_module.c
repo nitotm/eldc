@@ -81,14 +81,16 @@ static PyObject *EldcResult_repr(EldcResult *self)
 
 static PyObject *EldcResult_str(EldcResult *self)
 {
-    if (self->language && self->language != Py_None)
+    if (self->language)
         return PyUnicode_FromFormat("%S", self->language);
-    return PyUnicode_FromString("und");
+    return PyUnicode_FromString("und");  /* safety fallback — should never reach here */
 }
 
 static int EldcResult_bool(EldcResult *self)
 {
-    return (self->language != NULL && self->language != Py_None);
+    if (!self->language) return 0;
+    const char *s = PyUnicode_AsUTF8(self->language);
+    return s && strcmp(s, "und") != 0;
 }
 
 static PyObject *EldcResult_richcompare(EldcResult *self, PyObject *other, int op)
@@ -103,14 +105,9 @@ static PyObject *EldcResult_richcompare(EldcResult *self, PyObject *other, int o
         }
     } else if (Py_TYPE(other) == Py_TYPE(self)) {
         EldcResult *o = (EldcResult *)other;
-        if (self->language == Py_None && o->language == Py_None) eq = 1;
-        else if (!self->language || self->language == Py_None ||
-                 !o->language   || o->language   == Py_None)   eq = 0;
-        else {
-            const char *a = PyUnicode_AsUTF8(self->language);
-            const char *b = PyUnicode_AsUTF8(o->language);
-            eq = (a && b) ? (strcmp(a, b) == 0) : 0;
-        }
+        const char *a = self->language ? PyUnicode_AsUTF8(self->language) : NULL;
+        const char *b = o->language    ? PyUnicode_AsUTF8(o->language)    : NULL;
+        eq = (a && b) ? (strcmp(a, b) == 0) : (a == b);
     } else {
         Py_RETURN_NOTIMPLEMENTED;
     }
@@ -123,13 +120,14 @@ static PyNumberMethods EldcResult_as_number = {
 
 static PyMemberDef EldcResult_members[] = {
     {"language", _ELD_T_OBJ, offsetof(EldcResult, language), _ELD_RO,
-     "Top detected language code (str) or None if undetermined."},
+     "Top detected language code (str); 'und' if undetermined."},
     {"scores",   _ELD_T_OBJ, offsetof(EldcResult, scores),   _ELD_RO,
      "Dict[str, float] normalised [0,1] scores, descending. "
      "Always has at least one entry (set_scores() is clamped to a minimum of 1)."},
     {"reliable", _ELD_T_OBJ, offsetof(EldcResult, reliable), _ELD_RO,
      "True if detection is reliable, False if uncertain. "
-     "Reliable = score >= 82% language average AND gap to runner-up > 4 pp."},
+     "Reliable = score >= 85% of language average AND gap to runner-up > 2 pp "
+     "AND at least 3 n-grams matched."},
     {NULL}
 };
 
@@ -156,8 +154,7 @@ static PyObject *make_result(const char *language, PyObject *scores_dict, int re
     EldcResult *r = PyObject_New(EldcResult, &EldcResult_Type);
     if (!r) { Py_XDECREF(scores_dict); return NULL; }
 
-    r->language = language ? PyUnicode_FromString(language)
-                       : (Py_INCREF(Py_None), Py_None);
+    r->language = PyUnicode_FromString(language ? language : "und");
     r->scores   = scores_dict ? scores_dict : PyDict_New();
     r->reliable = PyBool_FromLong(reliable);   /* new ref: Py_True or Py_False */
 
@@ -182,18 +179,39 @@ static PyObject *make_result(const char *language, PyObject *scores_dict, int re
  *
  * Raises RuntimeError if eldc.init() has not been called.
  * ═══════════════════════════════════════════════════════════════════════════ */
-static PyObject *py_detect(PyObject *module, PyObject *args)
+static PyObject *py_detect(PyObject *self, PyObject *obj)
 {
-    const char *text;
-    if (!PyArg_ParseTuple(args, "s", &text)) return NULL;
-
     if (__builtin_expect(!ht, 0)) {
         PyErr_SetString(PyExc_RuntimeError,
             "eldc not initialized — call eldc.init() before detection");
         return NULL;
     }
 
+    Py_ssize_t len;
+    const char *text = PyUnicode_AsUTF8AndSize(obj, &len);
+    if (!text) return NULL;
+
     const char *language;
+
+    language = detect_ex(text, NULL, NULL);
+
+    return PyUnicode_FromString(language ? language : "und");
+}
+/* Same as py_detect, but allows for for multi-threaded parallel Python threads */
+static PyObject *py_detect_mt(PyObject *self, PyObject *obj)
+{
+    if (__builtin_expect(!ht, 0)) {
+        PyErr_SetString(PyExc_RuntimeError,
+            "eldc not initialized — call eldc.init() before detection");
+        return NULL;
+    }
+
+    Py_ssize_t len;
+    const char *text = PyUnicode_AsUTF8AndSize(obj, &len);
+    if (!text) return NULL;
+
+    const char *language;
+
     Py_BEGIN_ALLOW_THREADS
     language = detect_ex(text, NULL, NULL);
     Py_END_ALLOW_THREADS
@@ -210,16 +228,17 @@ static PyObject *py_detect(PyObject *module, PyObject *args)
  *
  * Raises RuntimeError if eldc.init() has not been called.
  * ═══════════════════════════════════════════════════════════════════════════ */
-static PyObject *py_detect_details(PyObject *module, PyObject *args)
+static PyObject *py_detect_details(PyObject *self, PyObject *obj)
 {
-    const char *text;
-    if (!PyArg_ParseTuple(args, "s", &text)) return NULL;
-
     if (__builtin_expect(!ht, 0)) {
         PyErr_SetString(PyExc_RuntimeError,
             "eldc not initialized — call eldc.init() before detection");
         return NULL;
     }
+
+    Py_ssize_t len;
+    const char *text = PyUnicode_AsUTF8AndSize(obj, &len);
+    if (!text) return NULL;   // obj was not a str, or UTF-8 conversion failed
 
     EldConfig cfg;
     cfg.scores    = _cfg_scores;
@@ -228,7 +247,7 @@ static PyObject *py_detect_details(PyObject *module, PyObject *args)
     cfg.lang_mask = _cfg_lang_mask;
     cfg.subset    = _cfg_subset;
 
-    EldResult result;
+    EldResult result = {0};
     Py_BEGIN_ALLOW_THREADS
     eld_process_line(text, &cfg, &result);
     Py_END_ALLOW_THREADS
@@ -419,17 +438,29 @@ static PyObject *py_init(PyObject *module, PyObject *Py_UNUSED(ignored))
 #define STRINGIFY(x)  STRINGIFY2(x)
 
 static PyMethodDef eldc_methods[] = {
-    {"detect",         py_detect,         METH_VARARGS,
+     {"detect", (PyCFunction)py_detect, METH_O,
      "detect(text: str) -> str\n"
      "Fastest detection: returns the language code (e.g. 'fr') or 'und'.\n"
+     "For single thread use.\n"
      "Always returns a string — never None.\n"
      "set_languages() and set_scheme() are respected.\n"
      "Raises RuntimeError if eldc.init() has not been called."},
 
-    {"detect_details", py_detect_details, METH_VARARGS,
+	 {"detect_mt", (PyCFunction)py_detect_mt, METH_O,
+	 "detect_mt(text: str) -> str\n"
+	 "Multi-threaded version of detect().\n"
+	 "Releases the Python GIL, allowing concurrent detection from multiple threads.\n"
+	 "Returns the language code (e.g. 'fr') or 'und'.\n"
+	 "Always returns a string — never None.\n"
+	 "set_languages() and set_scheme() are respected.\n"
+	 "Raises RuntimeError if eldc.init() has not been called."},
+	  
+    {"detect_details", (PyCFunction)py_detect_details, METH_O,
      "detect_details(text: str) -> Result\n"
+     "Multi-threaded by default.\n"
      "Detect with reliability flag and optional top-N scores.\n"
      "Returns Result(.language, .reliable, .scores).\n"
+     ".language is always a str: a language code or 'und' if undetermined.\n"
      "Reliability is always computed regardless of set_scores().\n"
      "Raises RuntimeError if eldc.init() has not been called."},
 

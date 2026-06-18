@@ -14,6 +14,7 @@ Usage
 from ._eldc import (
     init,
     detect,
+    detect_mt,
     detect_details,
     set_scores,
     set_languages,
@@ -28,6 +29,7 @@ from ._eldc import (
 __all__ = (
     "init",
     "detect",
+    "detect_mt",
     "detect_details",
     "set_scores",
     "set_languages",
