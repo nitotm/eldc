@@ -31,3 +31,16 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - 
+
+## [0.3.0] - 2026-06-18
+
+> **Important**: This is a 0.x release. The API and functions are **unstable** and may change in future versions.
+
+### Added
+- Added detect_mt() at python package
+
+### Changed
+- Compressed scores in the database, we save 1.8 MB
+
+### Fixed
+- 
