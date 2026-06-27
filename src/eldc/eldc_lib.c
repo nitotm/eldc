@@ -25,11 +25,6 @@
 #include "eld_core.c"
 #include "eldc_lib.h"
 
-/* ── Library-level config ────────────────────────────────────────────────── */
-static int      _lib_scores    = 3; /* min 1; detect_details always returns scores */
-static int      _lib_scheme    = 0;
-static uint64_t _lib_lang_mask = (uint64_t)-1;
-static int      _lib_subset    = 0;
 
 /*
  * No auto-init on library load (by design)
@@ -48,32 +43,30 @@ ELD_API void eldc_init(void)
     init_detector();
 }
 
+/* global hastable delete */
 ELD_API void eldc_close(void)
 {
     ht = NULL; ht_sz = 0; ht_mask = 0;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
- * Configuration setters
- * ═══════════════════════════════════════════════════════════════════════════ */
-/* Static buffer for the return value — valid until the next call.
- * Set_languages is a config function called before detection, so no
- * thread-safety concern here. */
-static char _lang_result[512];
 
-ELD_API const char *eldc_set_languages(const char *codes)
+/* ── Private language-parsing helper ─────────────────────────────────────── */
+/* Parses a comma-separated codes string into *out_mask / *out_subset.
+ * Returns a comma-separated ISO 639-1 string of matched codes in result_buf.
+ * Unrecognised codes are printed to stderr and skipped. */
+static const char *_parse_languages(const char *codes,
+                                     uint64_t *out_mask, int *out_subset,
+                                     char *result_buf, size_t result_sz)
 {
-    _lang_result[0] = '\0';
-
+    result_buf[0] = '\0';
     if (!codes || !*codes) {
-        _lib_lang_mask = (uint64_t)-1; _lib_subset = 0;
-        g_lang_mask    = (uint64_t)-1; g_subset    = 0;
-        return _lang_result;   /* empty string = filter cleared, all languages active */
+        *out_mask = (uint64_t)-1; *out_subset = 0;
+        return result_buf;
     }
 
     uint64_t mask = 0;
-    char    *dst  = _lang_result;
-    char    *lim  = _lang_result + sizeof _lang_result - 1;
+    char    *dst  = result_buf;
+    char    *lim  = result_buf + result_sz - 1;
     int      first = 1;
 
     char buf[512];
@@ -93,7 +86,6 @@ ELD_API const char *eldc_set_languages(const char *codes)
             if (!strcmp(tok, ELD_langCodes[i]) || !strcmp(tok, ELD_ISO639_2T[i])) {
                 mask |= 1ULL << i;
                 found = 1;
-                /* Append canonical ISO 639-1 code to return buffer. */
                 const char *code = ELD_langCodes[i];
                 size_t      clen = strlen(code);
                 if (dst + (first ? 0 : 1) + clen < lim) {
@@ -110,86 +102,128 @@ ELD_API const char *eldc_set_languages(const char *codes)
     }
     *dst = '\0';
 
-    if (mask) {
-        _lib_lang_mask = mask; _lib_subset = 1;
-        g_lang_mask    = mask; g_subset    = 1;
-    }
-    return _lang_result;
+    if (mask) { *out_mask = mask; *out_subset = 1; }
+    return result_buf;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Configuration setters
+ * ═══════════════════════════════════════════════════════════════════════════ */
+static ELD_THREAD_LOCAL char _lang_result[512];
+
+ELD_API const char *eldc_set_languages_cfg(EldConfig *cfg, const char *codes)
+{
+	 if (!cfg) return NULL;
+    return _parse_languages(codes,
+                            &cfg->lang_mask, &cfg->subset,
+                            _lang_result, sizeof _lang_result);
+}
+
+ELD_API void eldc_set_scheme_cfg(EldConfig *cfg, const char *scheme)
+{
+	 if (!cfg) return;
+    if (!scheme) return;
+    if (!strcmp(scheme,"iso639-1")||!strcmp(scheme,"iso639_1"))
+        cfg->scheme = SCHEME_ISO639_1;
+    else if (!strcmp(scheme,"iso639-2t")||!strcmp(scheme,"iso639_2t"))
+        cfg->scheme = SCHEME_ISO639_2T;
+}
+
+ELD_API void eldc_set_scores_cfg(EldConfig *cfg, int n)
+{
+    if (!cfg) return;
+    if (n < 1) n = 1;
+    if (n > ELD_MAX_SCORES) n = ELD_MAX_SCORES;
+    cfg->scores = n;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Global setters
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+ELD_API const char *eldc_set_languages(const char *codes)
+{
+    return eldc_set_languages_cfg(&g_config, codes);
 }
 
 ELD_API void eldc_set_scheme(const char *scheme)
 {
-    if (!scheme) return;
-    if (!strcmp(scheme,"iso639-1")||!strcmp(scheme,"iso639_1")) {
-        _lib_scheme = 0; g_scheme = SCHEME_ISO639_1;
-    } else if (!strcmp(scheme,"iso639-2t")||!strcmp(scheme,"iso639_2t")) {
-        _lib_scheme = 1; g_scheme = SCHEME_ISO639_2T;
-    }
+    eldc_set_scheme_cfg(&g_config, scheme);
 }
 
 ELD_API void eldc_set_scores(int n)
 {
-    if (n < 1) n = 1;                  /* detect_details always returns scores */
-    if (n > ELD_MAX_SCORES) n = ELD_MAX_SCORES;
-    _lib_scores = n;
+    eldc_set_scores_cfg(&g_config, n);
 }
-
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * Detection
- *
- * eldc_detect — unconditional detect_ex() wrapper.
- *   detect_ex uses g_lang_mask, g_subset, g_scheme globals which are kept
- *   in sync by the setters above, so no extra condition checks are needed.
- *
- * eldc_detect_details — always passes reliable=1 to eld_process_line.
- *   _lib_scores is clamped to >= 1, so result->scores always has at least
- *   one entry (default 3, max ELD_LIB_MAX_SCORES).
  * ═══════════════════════════════════════════════════════════════════════════ */
+ELD_API const char *eldc_detect_cfg(EldConfig *cfg, const char *text)
+{
+    if (__builtin_expect(!ht, 0)) {
+        fprintf(stderr, "eldc error: library not initialized. Call eldc_init() before detecting.\n");
+        return NULL;
+    }
+    return detect_ex(text, NULL, NULL, cfg);
+}
+
 ELD_API const char *eldc_detect(const char *text)
 {
     if (__builtin_expect(!ht, 0)) {
         fprintf(stderr, "eldc error: library not initialized. Call eldc_init() before detecting.\n");
         return NULL;
     }
-	 
-    const char *r = detect_ex(text, NULL, NULL);
-    return r ? r : "und";
+    return detect_ex(text, NULL, NULL, NULL);   /* NULL → uses g_config */
 }
 
-ELD_API const char *eldc_detect_details(const char *text, EldcDetectResult *result)
+ELD_API void eldc_detect_details_cfg(EldConfig *cfg, const char *text, EldcDetectResult *result)
 {
     if (__builtin_expect(!ht, 0)) {
         fprintf(stderr, "eldc error: library not initialized. Call eldc_init() before detecting.\n");
         if (result) {
-            result->language = NULL;
+            result->language = "und";
             result->reliable = 0;
             result->n_scores = 0;
         }
-        return NULL;
+        return;
     }
-    if (!result) return eldc_detect(text);
+    if (!result) return; // detect_ex(text, NULL, NULL, cfg);
 
-    EldConfig cfg;
-    cfg.scores    = _lib_scores;
-    cfg.reliable  = 1;              /* always on in detect_details */
-    cfg.scheme    = _lib_scheme;
-    cfg.lang_mask = _lib_lang_mask;
-    cfg.subset    = _lib_subset;
+    EldResult r = {0};
+    eld_process_line(text, cfg, &r);
 
-    EldResult r;
-    eld_process_line(text, &cfg, &r);
-
-    result->language = r.language ? r.language : "und";
+    result->language = r.language;
     result->reliable = r.reliable;
     result->n_scores = r.n_entries;
 
     for (int i = 0; i < r.n_entries; i++) {
-        result->scores[i].language  = _lib_scheme
-                                    ? ELD_ISO639_2T[r.entries[i].idx]
-                                    : ELD_langCodes[r.entries[i].idx];
+        result->scores[i].language = cfg->scheme
+                                   ? ELD_ISO639_2T[r.entries[i].idx]
+                                   : ELD_langCodes[r.entries[i].idx];
         result->scores[i].score = r.entries[i].ns;
     }
+    // return result->language;
+}
 
-    return result->language;
+ELD_API void eldc_detect_details(const char *text, EldcDetectResult *result)
+{
+    eldc_detect_details_cfg(&g_config, text, result);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * Isolated configuration Instance
+ * Multiple configuration instances and the global API can coexist safely.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+ELD_API EldConfig *eldc_config_create(void)
+{
+    EldConfig *cfg = malloc(sizeof *cfg);
+    if (!cfg) return NULL;
+    *cfg = default_config;   // copy contents
+    return cfg;
+}
+
+ELD_API void eldc_config_free(EldConfig *cfg)
+{
+    free(cfg);
 }

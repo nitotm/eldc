@@ -75,6 +75,9 @@ typedef struct {
     EldcScoreItem scores[ELD_LIB_MAX_SCORES];     /* top-N scores, descending    */
 } EldcDetectResult;
 
+struct EldConfig_s;                       /* forward declaration — fields opaque to the caller */
+typedef struct EldConfig_s EldcConfig;    /* public name for the same struct                  */
+
 /* ── Lifecycle ───────────────────────────────────────────────────────────── */
 
 /* Load the n-gram database and build the hash table.
@@ -86,6 +89,20 @@ ELD_API void eldc_init(void);
 
 /* Release all resources. */
 ELD_API void eldc_close(void);
+
+/* ── Configuration Instance ────────────────────────────────────────────────────────── */
+/*
+ * An EldConfig holds its own scheme/filter/scores settings, fully isolated
+ * from the global config and from other instances. Multiple configurations and
+ * the global API can coexist in the same process without interference.
+ *
+ * The hash table and n-gram data are shared (read-only after eldc_init()),
+ * so config instances add only sizeof(EldcCtx) (~24 bytes) of overhead each.
+ */
+
+ELD_API EldConfig   *eldc_config_create(void);       /* starts with factory defaults */
+ELD_API void        eldc_config_free(EldConfig *cfg);
+
 
 /* ── Configuration ───────────────────────────────────────────────────────── */
 
@@ -99,17 +116,20 @@ ELD_API void eldc_close(void);
  * The returned pointer is valid until the next call to eldc_set_languages.
  * Unrecognised codes are printed to stderr and skipped. */
 ELD_API const char *eldc_set_languages(const char *codes);
+ELD_API const char *eldc_set_languages_cfg(EldConfig *cfg, const char *codes);
 
 /* Set the language code scheme used in all output.
  * "iso639-1"  (default) → "en", "fr", "zh", …
  * "iso639-2t"           → "eng", "fra", "zho", … */
 ELD_API void eldc_set_scheme(const char *scheme);
+ELD_API void eldc_set_scheme_cfg(EldConfig *cfg, const char *scheme);
 
 /* Control how many top scores eldc_detect_details() returns.
  *   n is clamped to [1, ELD_LIB_MAX_SCORES]; values below 1 become 1, since
  *   detect_details() always returns at least one score.  Default: 3.
  * Reliability is always computed regardless of this setting. */
 ELD_API void eldc_set_scores(int n);
+ELD_API void eldc_set_scores_cfg(EldConfig *cfg, int n);
 
 
 /* ── Detection ───────────────────────────────────────────────────────────── */
@@ -118,12 +138,14 @@ ELD_API void eldc_set_scores(int n);
  * Returns a pointer to static storage: a language code (e.g. "fr") or "und".
  * Always returns a non-NULL string.  Thread-safe. */
 ELD_API const char *eldc_detect(const char *text);
+ELD_API const char *eldc_detect_cfg(EldConfig *cfg, const char *text);
 
 /* Detect with reliability flag and optional top-N scores.
  * Fills *result and returns the language code ("und" if none).
  * result must point to a caller-allocated EldcDetectResult.
  * Thread-safe. */
-ELD_API const char *eldc_detect_details(const char *text, EldcDetectResult *result);
+ELD_API void eldc_detect_details(const char *text, EldcDetectResult *result);
+ELD_API void eldc_detect_details_cfg(EldConfig *cfg, const char *text, EldcDetectResult *result);
 
 #ifdef __cplusplus
 }

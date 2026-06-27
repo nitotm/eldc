@@ -179,7 +179,7 @@ static int get_nprocs_mt(void)
  * ═══════════════════════════════════════════════════════════════════════════ */
 int main(int argc, char **argv)
 {
-    EldConfig   cfg       = { 0, 0, 0, (uint64_t)-1, 0 };
+    EldConfig   cfg       = { 0, 0, SCHEME_ISO639_1, (uint64_t)-1, 0 };
     int         n_threads = get_nprocs_mt();
     int         verbose   = 0;
 
@@ -220,8 +220,9 @@ int main(int argc, char **argv)
 
         } else if (!strcmp(a,"--scheme") && i+1 < argc) {
             const char *s = argv[++i];
-            if      (!strcmp(s,"iso639-2t")||!strcmp(s,"iso639_2t")) cfg.scheme = 1;
-            else if ( strcmp(s,"iso639-1") && strcmp(s,"iso639_1")) {
+            if      (!strcmp(s,"iso639-2t")||!strcmp(s,"iso639_2t")) {
+					cfg.scheme = SCHEME_ISO639_2T; g_config.scheme = SCHEME_ISO639_2T;
+            } else if ( strcmp(s,"iso639-1") && strcmp(s,"iso639_1")) {
                 fprintf(stderr,"Unknown scheme '%s'\n",s); return 1;
             }
 
@@ -231,7 +232,7 @@ int main(int argc, char **argv)
                 fprintf(stderr,"Warning: no valid languages; using all\n");
             } else {
                 cfg.lang_mask = mask; cfg.subset = 1;
-                g_lang_mask   = mask; g_subset   = 1;
+                g_config.lang_mask = mask; g_config.subset = 1;
             }
 
         } else if (a[0] != '-') {

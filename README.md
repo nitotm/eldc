@@ -44,25 +44,34 @@ import eldc
 
 eldc.init()
 
-# We can set a language filter
-eldc.set_languages(["en", "es", "fr"]) # also accepts string "en, es, fr"
+# Optionally, we can make an isolated configuration instance
+eldc_instance = eldc.instance()
+
+# We can set a language filter, global setter
+eldc.set_languages(["en", "es", "fr"])  # also accepts string "en, es, fr"
 # returns a list of the set languages ['en', 'es', 'fr']
-eldc.set_languages([]) # reset all
+eldc.set_languages([])  # reset all
+# Instance setter, works the same way
+eldc_instance.set_languages(["en", "es", "fr"])
 
 # ISO 639-2/T output, (default iso639-1)
-# eldc.set_scheme("iso639-2t")
+# eldc.set_scheme("iso639-2t")  global setter
+# eldc_instance.set_scheme("iso639-2t")  instance setter
 
 # Simple detect, returns a string with language code, or "und" for undetermined
-eldc.detect("Bonjour le monde") # 'fr'
+eldc.detect("Bonjour le monde")  # 'fr'
+eldc_instance.detect('Bonjour')  # 'fr'
 # Use detect_mt() for multi-threaded parallel Python threads
 
 # for detect_details() we can choose up to how many scores we want
-eldc.set_scores(2) # default 3, max 20
+eldc.set_scores(2) # default 3, max 20. Global setter
+eldc_instance.set_scores(2) # Instance setter
 
-r = eldc.detect_details("Hola mundo") # multi-threaded capable by default
-print(r.language) # (str)  'es'
-print(r.scores)   # (dict) {'es': 0.80, 'pt': 0.57} Scores are between 0 and 1
-print(r.reliable) # (bool) True or False
+r = eldc.detect_details("Hola mundo")  # multi-threaded capable by default
+print(r.language)  # (str)  'es'
+print(r.scores)    # (dict) {'es': 0.80, 'pt': 0.57} Scores are between 0 and 1
+print(r.reliable)  # (bool) True or False
+r = eldc_instance.detect_details("Hola mundo")  # Same behavior
 
 # eldc.LANGUAGES and eldc.LANGUAGES_ISO2T return list of all available languages
 ```
@@ -112,18 +121,33 @@ $ffi = FFI::cdef('
         EldcScoreItem scores[20];
     } EldcDetectResult;
 
+    struct EldcConfig;
+    typedef struct EldcConfig EldcConfig;
+
     void        eldc_init(void);
     void        eldc_close(void);
     const char *eldc_detect(const char *text);
-    const char *eldc_detect_details(const char *text, EldcDetectResult *result);
+    void        eldc_detect_details(const char *text, EldcDetectResult *result);
     const char *eldc_set_languages(const char *codes);
     void        eldc_set_scheme(const char *scheme);
     void        eldc_set_scores(int n);
+
+    EldcConfig *eldc_config_create(void);
+    void        eldc_config_free(EldcConfig *cfg);
+    const char *eldc_detect_cfg(EldcConfig *cfg, const char *text);
+    void        eldc_detect_details_cfg(EldcConfig *cfg, const char *text, EldcDetectResult *result);
+    const char *eldc_set_languages_cfg(EldcConfig *cfg, const char *codes);
+    void        eldc_set_scheme_cfg(EldcConfig *cfg, const char *scheme);
+    void        eldc_set_scores_cfg(EldcConfig *cfg, int n);
 ', './libeldc.so');  // Windows: 'eldc.dll', macOS: './libeldc.dylib'
 
 $ffi->eldc_init();
 
-$ffi->eldc_detect("Bonjour le monde");  // string: "fr"
+// Optionally, we can make an isolated configuration instance
+$i_config = $ffi->eldc_config_create();
+
+$ffi->eldc_detect("Bonjour le monde");        // "fr"
+$ffi->eldc_detect_cfg($i_config, "Bonjour");  // "fr", same behavior
 
 // detect_details() to retrieve full data
 $r = $ffi->new("EldcDetectResult");
@@ -133,23 +157,30 @@ $r->reliable;  // int: 1 (0 for false, 1 for true)
 $r->n_scores;  // int: 3 (default, up to)
 $r->scores[0]->language;  // string: "fr"
 $r->scores[0]->score;  // float: 0.9016
+// Isolated configuration version, works the same way
+$ffi->eldc_detect_details_cfg($i_config, "Bonjour", FFI::addr($r));
 
-// Return up to X scores. Default 3, max 20
+// Return up to X scores. Default 3, max 20. Global setter.
 $ffi->eldc_set_scores(2);  
 $r2 = $ffi->new("EldcDetectResult"); 
 $ffi->eldc_detect_details("Bonjour le monde", FFI::addr($r2));
-$r2->n_scores; // int: 2
+$r2->n_scores;  // int: 2
+// Isolated instance setter
+$ffi->eldc_set_scores_cfg($i_config, 2);
 
 // Set a language subset, returns validated languages
-$ffi->eldc_set_languages("en,fr,de");  // string: "en,fr,de"
+$ffi->eldc_set_languages("en,fr,de");  // string: "en,fr,de" Global setter
 $ffi->eldc_detect("Hola mundo, bonito dia");  // string: "fr"
 $ffi->eldc_set_languages("");  // reset
+$ffi->eldc_set_languages_cfg($i_config, "en,fr,es");  // instance setter
 
-$ffi->eldc_set_scheme("iso639-2t");  // Default "iso639-1"
+$ffi->eldc_set_scheme("iso639-2t");  // Default "iso639-1". Global setter
+$ffi->eldc_set_scheme_cfg($i_config, ("iso639-2t);  // instance setter
 $ffi->eldc_detect("Hola mundo, bonito dia");  // string: "spa"
 
 // Cleanup
-$ffi->eldc_close(); 
+$ffi->eldc_config_free($i_config);
+$ffi->eldc_close();  // Unloads eldc resources, globally
 ```
 
 ## Command line executable

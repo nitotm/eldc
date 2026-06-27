@@ -34,16 +34,6 @@
 
 #include "eld_core.c"
 
-
-/* ═══════════════════════════════════════════════════════════════════════════
- * Module-level configuration
- * ═══════════════════════════════════════════════════════════════════════════ */
-static uint64_t _cfg_lang_mask = (uint64_t)-1;
-static int      _cfg_subset    = 0;
-static int      _cfg_scheme    = 0;   /* 0=iso639-1, 1=iso639-2t */
-static int      _cfg_scores    = 3; /* min 1; N=top-N in detect_details */
-static int      _cfg_inited    = 0; /* 1 once init() has been called; */
-
 /* Pre-interned PyUnicode objects for all language codes in both schemes.
  *   _lang_str[0][i]  ISO 639-1 code  e.g. "fr"  (2-letter)
  *   _lang_str[1][i]  ISO 639-2/T code e.g. "fra" (3-letter)
@@ -98,7 +88,7 @@ static PyObject *EldcResult_richcompare(EldcResult *self, PyObject *other, int o
     if (op != Py_EQ && op != Py_NE) Py_RETURN_NOTIMPLEMENTED;
     int eq;
     if (PyUnicode_Check(other)) {
-        if (!self->language || self->language == Py_None) eq = 0;
+        if (!self->language) eq = 0;
         else {
             const char *s = PyUnicode_AsUTF8(self->language);
             eq = s ? (PyUnicode_CompareWithASCIIString(other, s) == 0) : 0;
@@ -154,7 +144,7 @@ static PyObject *make_result(const char *language, PyObject *scores_dict, int re
     EldcResult *r = PyObject_New(EldcResult, &EldcResult_Type);
     if (!r) { Py_XDECREF(scores_dict); return NULL; }
 
-    r->language = PyUnicode_FromString(language ? language : "und");
+    r->language = PyUnicode_FromString(language);
     r->scores   = scores_dict ? scores_dict : PyDict_New();
     r->reliable = PyBool_FromLong(reliable);   /* new ref: Py_True or Py_False */
 
@@ -179,7 +169,7 @@ static PyObject *make_result(const char *language, PyObject *scores_dict, int re
  *
  * Raises RuntimeError if eldc.init() has not been called.
  * ═══════════════════════════════════════════════════════════════════════════ */
-static PyObject *py_detect(PyObject *self, PyObject *obj)
+static PyObject *detect_impl(EldConfig *cfg, PyObject *obj)
 {
     if (__builtin_expect(!ht, 0)) {
         PyErr_SetString(PyExc_RuntimeError,
@@ -191,14 +181,19 @@ static PyObject *py_detect(PyObject *self, PyObject *obj)
     const char *text = PyUnicode_AsUTF8AndSize(obj, &len);
     if (!text) return NULL;
 
-    const char *language;
+	 const char *language = detect_ex(text, NULL, NULL, cfg);
 
-    language = detect_ex(text, NULL, NULL);
-
-    return PyUnicode_FromString(language ? language : "und");
+    return PyUnicode_FromString(language);
 }
+
+static PyObject *py_detect(PyObject *module, PyObject *obj)
+{
+    (void)module;
+    return detect_impl(&g_config, obj);
+}
+
 /* Same as py_detect, but allows for for multi-threaded parallel Python threads */
-static PyObject *py_detect_mt(PyObject *self, PyObject *obj)
+static PyObject *detect_mt_impl(EldConfig *cfg, PyObject *obj)
 {
     if (__builtin_expect(!ht, 0)) {
         PyErr_SetString(PyExc_RuntimeError,
@@ -213,10 +208,17 @@ static PyObject *py_detect_mt(PyObject *self, PyObject *obj)
     const char *language;
 
     Py_BEGIN_ALLOW_THREADS
-    language = detect_ex(text, NULL, NULL);
+    language = detect_ex(text, NULL, NULL, cfg);
     Py_END_ALLOW_THREADS
 
-    return PyUnicode_FromString(language ? language : "und");
+    return PyUnicode_FromString(language);
+}
+
+/* Same as py_detect, but allows for for multi-threaded parallel Python threads */
+static PyObject *py_detect_mt(PyObject *module, PyObject *obj)
+{
+    (void)module;
+    return detect_mt_impl(&g_config, obj);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -228,7 +230,8 @@ static PyObject *py_detect_mt(PyObject *self, PyObject *obj)
  *
  * Raises RuntimeError if eldc.init() has not been called.
  * ═══════════════════════════════════════════════════════════════════════════ */
-static PyObject *py_detect_details(PyObject *self, PyObject *obj)
+
+static PyObject *detect_details_impl(EldConfig *cfg, PyObject *obj)
 {
     if (__builtin_expect(!ht, 0)) {
         PyErr_SetString(PyExc_RuntimeError,
@@ -240,41 +243,40 @@ static PyObject *py_detect_details(PyObject *self, PyObject *obj)
     const char *text = PyUnicode_AsUTF8AndSize(obj, &len);
     if (!text) return NULL;   // obj was not a str, or UTF-8 conversion failed
 
-    EldConfig cfg;
-    cfg.scores    = _cfg_scores;
-    cfg.reliable  = 1;             /* always on in detect_details */
-    cfg.scheme    = _cfg_scheme;
-    cfg.lang_mask = _cfg_lang_mask;
-    cfg.subset    = _cfg_subset;
-
     EldResult result = {0};
     Py_BEGIN_ALLOW_THREADS
-    eld_process_line(text, &cfg, &result);
+    eld_process_line(text, cfg, &result);
     Py_END_ALLOW_THREADS
 
     PyObject *dct = NULL;
-    if (_cfg_scores > 0) {
+    if (cfg->scores > 0) {
         dct = PyDict_New();
         if (!dct) return NULL;
-        for (int i = 0; i < result.n_entries; i++) {
-            double    v    = (double)(roundf(result.entries[i].ns * 10000.0f) / 10000.0f);
-            PyObject *k    = _lang_str[_cfg_scheme][result.entries[i].idx];
-            PyObject *vobj = PyFloat_FromDouble(v);
-            if (!vobj || PyDict_SetItem(dct, k, vobj) < 0) {
-                Py_XDECREF(vobj); Py_DECREF(dct); return NULL;
-            }
-            Py_DECREF(vobj);
-        }
+		  for (int i = 0; i < result.n_entries; i++) {
+			 PyObject *k = _lang_str[cfg->scheme][result.entries[i].idx];
+			 PyObject *vobj = PyFloat_FromDouble((double)result.entries[i].ns);
+			 if (!vobj || PyDict_SetItem(dct, k, vobj) < 0) {
+				  Py_XDECREF(vobj);
+				  Py_DECREF(dct);
+				  return NULL;
+			 }
+			 Py_DECREF(vobj);
+		}
     }
 
     return make_result(result.language, dct, result.reliable);
 }
 
+static PyObject *py_detect_details(PyObject *module, PyObject *obj)
+{
+    (void)module;
+    return detect_details_impl(&g_config, obj);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
  * Configuration setters
  * ═══════════════════════════════════════════════════════════════════════════ */
-
-static PyObject *py_set_scores(PyObject *module, PyObject *args)
+static PyObject *set_scores_impl(EldConfig *cfg, PyObject *args)
 {
     PyObject *arg;
     if (!PyArg_ParseTuple(args, "O", &arg)) return NULL;
@@ -293,17 +295,22 @@ static PyObject *py_set_scores(PyObject *module, PyObject *args)
     /* Clamp: detect_details always returns scores, so minimum is 1. */
     if (n < 1) n = 1;
     if (n > ELD_MAX_SCORES) n = ELD_MAX_SCORES;
-    _cfg_scores = (int)n;
+    cfg->scores = (int)n;
     Py_RETURN_NONE;
+}
+
+static PyObject *py_set_scores(PyObject *module, PyObject *args)
+{
+    (void)module;
+    return set_scores_impl(&g_config, args);
 }
 
 /* set_languages — accepts str ("en,fr,es") or list/tuple (["en","fr","es"]).
  * Returns a list[str] of the ISO 639-1 codes that were actually matched.
  *   []           → language filter cleared, all languages active
  *   ["fr","en"]  → only those two matched; unrecognised codes produce UserWarning
- * Raises ValueError if a non-empty input matches nothing at all.
- * Syncs both the module config and the detect_ex globals. */
-static PyObject *py_set_languages(PyObject *module, PyObject *args)
+ * Raises ValueError if a non-empty input matches nothing at all. */
+static PyObject *set_languages_impl(EldConfig *cfg, PyObject *args)
 {
     PyObject *arg;
     if (!PyArg_ParseTuple(args, "O", &arg)) return NULL;
@@ -346,8 +353,8 @@ static PyObject *py_set_languages(PyObject *module, PyObject *args)
 
     /* ── Empty input → reset to all languages ────────────────────────────── */
     if (!flat[0]) {
-        _cfg_lang_mask = (uint64_t)-1; _cfg_subset = 0;
-        g_lang_mask    = (uint64_t)-1; g_subset    = 0;
+        cfg->lang_mask = (uint64_t)-1;
+		  cfg->subset = 0;
         return PyList_New(0);   /* empty list signals "all languages active" */
     }
 
@@ -397,21 +404,26 @@ static PyObject *py_set_languages(PyObject *module, PyObject *args)
         return NULL;
     }
 
-    _cfg_lang_mask = mask; _cfg_subset = 1;
-    g_lang_mask    = mask; g_subset    = 1;
+    cfg->lang_mask = mask;
+	 cfg->subset = 1;
+						 
     return matched;
 }
 
-/* set_scheme syncs g_scheme so detect() returns the configured scheme. */
-static PyObject *py_set_scheme(PyObject *module, PyObject *args)
+static PyObject *py_set_languages(PyObject *module, PyObject *args){
+	 (void)module;
+    return set_languages_impl(&g_config, args);
+}
+
+static PyObject *set_scheme_impl(EldConfig *cfg, PyObject *args)
 {
     const char *scheme;
     if (!PyArg_ParseTuple(args, "s", &scheme)) return NULL;
 
     if (!strcmp(scheme,"iso639-1")||!strcmp(scheme,"iso639_1")) {
-        _cfg_scheme = 0; g_scheme = SCHEME_ISO639_1;
+        cfg->scheme = SCHEME_ISO639_1;
     } else if (!strcmp(scheme,"iso639-2t")||!strcmp(scheme,"iso639_2t")) {
-        _cfg_scheme = 1; g_scheme = SCHEME_ISO639_2T;
+        cfg->scheme = SCHEME_ISO639_2T;
     } else {
         PyErr_Format(PyExc_ValueError,
             "Unknown scheme '%s'; use 'iso639-1' or 'iso639-2t'", scheme);
@@ -420,15 +432,109 @@ static PyObject *py_set_scheme(PyObject *module, PyObject *args)
     Py_RETURN_NONE;
 }
 
+static PyObject *py_set_scheme(PyObject *module, PyObject *args)
+{
+    (void)module;
+    return set_scheme_impl(&g_config, args);
+}
+
 
 /* init() / reinit(): same operation, init() is the primary name.
  * Calling init() again with a different ht_bits is always safe — it frees
  * the old table and allocates a fresh one.  Do this before any detection. */
 static PyObject *py_init(PyObject *module, PyObject *Py_UNUSED(ignored))
 {
+	 (void)module;
     init_detector();
-	 _cfg_inited = 1;
     Py_RETURN_NONE;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * EldcInst — isolated detector instance (eldc.instance())
+ *
+ * Holds its own EldSettings (scheme/filter/subset) and score count, fully
+ * independent of the global config and of other instances.  The hash table
+ * and blobs are shared (read-only after init).  Multiple instances plus the
+ * global API can coexist without interference.
+ *
+ * Usage:
+ *   d = eldc.instance()
+ *   d.set_languages("en,fr,de")
+ *   d.set_scheme("iso639-2t")
+ *   d.detect("Bonjour")          # "fra" — isolated from global scheme
+ *   r = d.detect_details("Bonjour")
+ * ═══════════════════════════════════════════════════════════════════════════ */
+typedef struct {
+    PyObject_HEAD
+    EldConfig settings;   /* scheme / lang_mask / subset — per-instance */
+} EldcInst;
+
+static void EldcInst_dealloc(EldcInst *self) {
+    Py_TYPE(self)->tp_free((PyObject *)self);
+}
+
+/* detect(text) */
+static PyObject *EldcInst_detect(EldcInst *self, PyObject *obj)
+{
+    return detect_impl(&self->settings, obj);
+}
+
+static PyObject *EldcInst_detect_mt(EldcInst *self, PyObject *obj)
+{
+    return detect_mt_impl(&self->settings, obj);
+}
+
+/* detect_details(text) */
+static PyObject *EldcInst_detect_details(EldcInst *self, PyObject *obj)
+{
+    return detect_details_impl(&self->settings, obj);
+}
+
+/* set_languages(codes: str | list[str]) — reuses the same input normalisation
+ * as the global py_set_languages but writes to self->settings only. */
+static PyObject *EldcInst_set_languages(EldcInst *self, PyObject *args)
+{
+    return set_languages_impl(&self->settings, args);
+}
+
+/* set_scheme(scheme: str) */
+static PyObject *EldcInst_set_scheme(EldcInst *self, PyObject *args)
+{
+    return set_scheme_impl(&self->settings, args);
+}
+
+static PyObject *EldcInst_set_scores(EldcInst *self, PyObject *args)
+{
+    return set_scores_impl(&self->settings, args);
+}
+
+static PyMethodDef EldcInst_methods[] = {
+    {"detect",         (PyCFunction)EldcInst_detect,         METH_O,       "detect(text) -> str"},
+    {"detect_mt",      (PyCFunction)EldcInst_detect_mt,      METH_O,       "detect_mt(text) -> str"},	 
+    {"detect_details", (PyCFunction)EldcInst_detect_details, METH_O,       "detect_details(text) -> Result"},
+    {"set_languages",  (PyCFunction)EldcInst_set_languages,  METH_VARARGS, "set_languages(codes) -> list[str]"},
+    {"set_scheme",     (PyCFunction)EldcInst_set_scheme,     METH_VARARGS, "set_scheme(scheme) -> None"},
+    {"set_scores",     (PyCFunction)EldcInst_set_scores,     METH_VARARGS, "set_scores(n) -> None"},
+    {NULL}
+};
+
+static PyTypeObject EldcInst_Type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    .tp_name      = "_eldc.Instance",
+    .tp_basicsize = sizeof(EldcInst),
+    .tp_dealloc   = (destructor)EldcInst_dealloc,
+    .tp_methods   = EldcInst_methods,
+    .tp_flags     = Py_TPFLAGS_DEFAULT,
+    .tp_doc       = "Isolated ELD detector instance. Use eldc.instance() to create.",
+};
+
+/* eldc.instance() — creates an isolated EldcInst, starts with default settings */
+static PyObject *py_instance(PyObject *module, PyObject *Py_UNUSED(ignored))
+{
+    EldcInst *d = PyObject_New(EldcInst, &EldcInst_Type);
+    if (!d) return NULL;
+    d->settings = default_config;
+    return (PyObject *)d;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -490,6 +596,13 @@ static PyMethodDef eldc_methods[] = {
      "init() -> None\n"
      "Load the n-gram database and build the hash table."},
 
+    {"instance",      py_instance,      METH_NOARGS,
+     "instance() -> Instance\n"
+     "Create an isolated detector with its own scheme/filter/scores settings.\n"
+     "Inherits current global defaults at creation time.\n"
+     "The instance is fully independent of the global config and other instances.\n"
+     "Usage: d = eldc.instance(); d.set_languages('en,fr'); d.detect('Bonjour')"},
+
     {NULL, NULL, 0, NULL}
 };
 
@@ -500,6 +613,7 @@ static struct PyModuleDef eldc_module_def = {
 PyMODINIT_FUNC PyInit__eldc(void)
 {
     if (PyType_Ready(&EldcResult_Type) < 0) return NULL;
+    if (PyType_Ready(&EldcInst_Type)   < 0) return NULL;
 
     /* No init_detector() here: the hash table is NOT loaded on import.
      * Call eldc.init()
@@ -511,6 +625,10 @@ PyMODINIT_FUNC PyInit__eldc(void)
     Py_INCREF(&EldcResult_Type);
     if (PyModule_AddObject(m, "Result", (PyObject *)&EldcResult_Type) < 0) {
         Py_DECREF(&EldcResult_Type); Py_DECREF(m); return NULL;
+    }
+    Py_INCREF(&EldcInst_Type);
+    if (PyModule_AddObject(m, "Instance", (PyObject *)&EldcInst_Type) < 0) {
+        Py_DECREF(&EldcInst_Type); Py_DECREF(m); return NULL;
     }
 
     PyObject *langs = PyList_New(MAX_LANGUAGES);

@@ -44,3 +44,17 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - 
+
+
+## [0.4.0] - 2026-06-18
+
+> **Important**: This is a 0.x release. The API and functions are **unstable** and may change in future versions.
+
+### Added
+- Added isolated configuration functions
+
+### Changed
+- 
+
+### Fixed
+- 

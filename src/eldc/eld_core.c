@@ -19,7 +19,7 @@
  *   init_detector() must be called exactly once from a single thread.
  *   After that, detect_ex() / detect() and eld_process_line() are fully
  *   thread-safe: all per-call mutable state uses _Thread_local storage.
- *   Config setters (g_scheme, g_lang_mask, g_subset) are NOT thread-safe;
+ *   Config g_config setters are NOT thread-safe;
  *   set them before starting parallel detection.
  */
 
@@ -138,17 +138,7 @@ static uint32_t    ht_mask = 0;
 static ELD_THREAD_LOCAL uint64_t g_ds_keys[DS_SIZE];
 static ELD_THREAD_LOCAL uint32_t g_ds_gen[DS_SIZE];
 static ELD_THREAD_LOCAL uint32_t g_call_gen = 0;
-
-/* ── Output scheme ───────────────────────────────────────────────────────── */
-typedef enum { SCHEME_ISO639_1, SCHEME_ISO639_2T } Scheme;
-static Scheme g_scheme = SCHEME_ISO639_1;
-static inline const char *lang_code(int idx) {
-    return g_scheme == SCHEME_ISO639_2T ? ELD_ISO639_2T[idx] : ELD_langCodes[idx];
-}
-
-/* ── Language subset filter ──────────────────────────────────────────────── */
-static uint64_t g_lang_mask = (uint64_t)-1;
-static int      g_subset    = 0;
+static const char *undetermined = "und";
 
 #define PF_DIST 16
 
@@ -169,6 +159,7 @@ static int      g_subset    = 0;
 #define ELD_EMIT_BUFSIZE 512
 
 typedef struct { int idx; float ns; } EldScoreEntry;
+typedef enum { SCHEME_ISO639_1, SCHEME_ISO639_2T } Scheme;
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * EldConfig — per-call detection configuration
@@ -180,13 +171,23 @@ typedef struct { int idx; float ns; } EldScoreEntry;
  *   reliable: 0 = skip; 1 = compute reliability flag (needs top-2)
  *   scheme  : 0 = ISO 639-1 (default); 1 = ISO 639-2/T
  * ═══════════════════════════════════════════════════════════════════════════ */
-typedef struct {
+typedef struct EldConfig_s {
     int      scores;    /* 0=disabled, 1..ELD_MAX_SCORES = top-N to return */
     int      reliable;
-    int      scheme;    /* 0=iso639-1, 1=iso639-2t */
+    Scheme   scheme;
     uint64_t lang_mask;
     int      subset;
 } EldConfig;
+
+/* Global default — written by config setters, read-only during detection. */
+static const EldConfig default_config = { 3, 1, SCHEME_ISO639_1, (uint64_t)-1, 0 };
+static EldConfig g_config = { 3, 1, SCHEME_ISO639_1, (uint64_t)-1, 0 };
+
+
+
+static inline const char *lang_code(int idx, Scheme scheme) {
+    return scheme == SCHEME_ISO639_2T ? ELD_ISO639_2T[idx] : ELD_langCodes[idx];
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * EldResult — output of eld_process_line()
@@ -209,6 +210,11 @@ typedef struct {
  * ═══════════════════════════════════════════════════════════════════════════ */
 static void init_detector(void)
 {
+	/* Not thread‑safe multy init guard
+	*  Allows re‑init after eldc_close() at eldc_lib
+	*/
+	if ( ht_sz != 0 ) { return; }
+	ht_sz = ELD_HT_SZ;
     /* Catch accidental slot-layout drift between large_db.h and eld_core.c. */
 #if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
     _Static_assert(sizeof(Slot) == 8, "Slot must be exactly 8 bytes");
@@ -225,7 +231,6 @@ static void init_detector(void)
     }
 
     ht      = ELD_hashtable;    /* prebuilt, lives in read-only data segment  */
-    ht_sz   = ELD_HT_SZ;
     ht_mask = ELD_HT_MASK;
 }
 
@@ -333,11 +338,13 @@ static inline int nextchar(const unsigned char *p, size_t rem, int *type)
 /* ═══════════════════════════════════════════════════════════════════════════
  * detect_ex()
  * ═══════════════════════════════════════════════════════════════════════════ */
+//static const int detect_ex(const char *text,
 static const char *detect_ex(const char *text,
                       float        scores_out[MAX_LANGUAGES],
-                      int         *ngram_count_out)
+                      int         *ngram_count_out,
+                      const EldConfig *cfg)   /* NULL → use g_config */
 {
-    if (__builtin_expect(!text || !*text, 0)) return NULL;
+    if (__builtin_expect(!text || !*text, 0)) return undetermined;
 
     size_t ilen = strnlen(text, 1002);
     size_t len  = ilen > 1000 ? 1000 : ilen;
@@ -417,7 +424,7 @@ static const char *detect_ex(const char *text,
 #undef ADD_NGRAM
 
     if (ngram_count_out) *ngram_count_out = nk_cnt;
-    if (__builtin_expect(!nk_cnt, 0)) return NULL;
+    if (__builtin_expect(!nk_cnt, 0)) return undetermined;
 
     for (int i = 0; i < nk_cnt; i++) {
         if (__builtin_expect(i+PF_DIST < nk_cnt, 1))
@@ -441,36 +448,39 @@ static const char *detect_ex(const char *text,
         }
     }
 
-    if (scores_out) memcpy(scores_out, ls, MAX_LANGUAGES * sizeof(float));
+    if (scores_out) {
+		 memcpy(scores_out, ls, MAX_LANGUAGES * sizeof(float));
+		 return "";
+	 }
+
+    /* Resolve settings once — one branch, no per-field ternaries. */
+    const EldConfig *config = cfg ? cfg : &g_config;
 
     int   best = -1;
     float best_score = 1.0f;
-    if (!g_subset) {
+    if (!config->subset) {
         for (int i = 0; i < MAX_LANGUAGES; i++)
             if (ls[i] > best_score) { best_score = ls[i]; best = i; }
     } else {
         for (int i = 0; i < MAX_LANGUAGES; i++) {
-            if (!((g_lang_mask >> i) & 1)) continue;
+            if (!((config->lang_mask >> i) & 1)) continue;
             if (ls[i] > best_score) { best_score = ls[i]; best = i; }
         }
     }
-    return (best >= 0) ? lang_code(best) : NULL;
+    return (best >= 0) ? lang_code(best, config->scheme) : undetermined; // NULL;
+	 //return best;
 }
 
-/* detect() — simple convenience wrapper; returns "und" instead of NULL.
- * Not currently called by any front-end (each has its own eldc_detect /
- * py_detect / eld_process_line path), kept for C callers that #include
- * eld_core.c directly. static avoids an exported symbol in libeldc.so;
- * the unused-function attribute (GCC/Clang only) silences the resulting
- * "defined but not used" warning when nothing references it. */
+/*
 #if defined(__GNUC__) || defined(__clang__)
 __attribute__((unused))
 #endif
 static const char *detect(const char *text)
 {
-    const char *r = detect_ex(text, NULL, NULL);
-    return r ? r : "und";
+    const int r = detect_ex(text, NULL, NULL);
+    return (r >= 0) ? lang_code(r) : "und";
 }
+*/
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * Reliability scoring
@@ -505,6 +515,9 @@ static int eld_is_reliable(int best_idx, float best_ns, float second_ns, int nk)
  * Returns the number of valid entries written.  When sort != 0, entries[0]
  * is the top language; entries[1] is the runner-up (needed for reliability).
  * ═══════════════════════════════════════════════════════════════════════════ */
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((unused))
+#endif
 static int eld_score_entry_cmp(const void *a, const void *b)
 {
     float d = ((const EldScoreEntry *)b)->ns - ((const EldScoreEntry *)a)->ns;
@@ -512,10 +525,11 @@ static int eld_score_entry_cmp(const void *a, const void *b)
 }
 
 static int eld_normalize(const float raw[MAX_LANGUAGES], int nk,
-                          uint64_t lang_mask, int subset, int sort,
-                          int max_out,
-                          EldScoreEntry entries[MAX_LANGUAGES])
+                         uint64_t lang_mask, int subset, int sort,
+                         int max_out,
+                         EldScoreEntry entries[MAX_LANGUAGES])
 {
+    // 1. Gather active languages
     int n = 0;
     for (int i = 0; i < MAX_LANGUAGES; i++) {
         if (subset && !((lang_mask >> i) & 1)) continue;
@@ -525,20 +539,30 @@ static int eld_normalize(const float raw[MAX_LANGUAGES], int nk,
         n++;
     }
 
-    int presorted = 0;
-    if (max_out > 0 && n > max_out) {
-        qsort(entries, (size_t)n, sizeof(EldScoreEntry), eld_score_entry_cmp);
-        n        = max_out;
-        presorted = 1;
+    // 2. Single Unified Sort Block
+    // We sort if the user requested a sorted output OR if we need to find the top-K elements
+    if (sort || (max_out > 0 && n > max_out)) {
+        for (int i = 1; i < n; i++) {
+            EldScoreEntry key = entries[i];
+            int j = i - 1;
+            while (j >= 0 && entries[j].ns < key.ns) {
+                entries[j + 1] = entries[j];
+                j--;
+            }
+            entries[j + 1] = key;
+        }
+        
+        // Truncate to max_out if required
+        if (max_out > 0 && n > max_out) {
+            n = max_out;
+        }
     }
 
+    // 3. Apply math scoring block (Order is safely preserved!)
     float inv_nk = -ELD_NORM_FACTOR / (float)nk;
-    for (int i = 0; i < n; i++)
-        //entries[i].ns = 1.0f - powf(entries[i].ns, inv_nk); // =* scoring
-		  entries[i].ns = 1.0f - expf(inv_nk * entries[i].ns); // += scoring
-
-    if (sort && !presorted && n > 1)
-        qsort(entries, (size_t)n, sizeof(EldScoreEntry), eld_score_entry_cmp);
+    for (int i = 0; i < n; i++) {
+        entries[i].ns = 1.0f - expf(inv_nk * entries[i].ns);
+    }
 
     return n;
 }
@@ -554,31 +578,28 @@ static int eld_normalize(const float raw[MAX_LANGUAGES], int nk,
  *   computes top-2 so the reliability gap check has a second score to
  *   compare against.  Only cfg.scores entries are stored in result->entries.
  * ═══════════════════════════════════════════════════════════════════════════ */
-static void eld_process_line(const char    *text,
+static void eld_process_line(const char       *text,
                               const EldConfig *cfg,
                               EldResult       *r)
 {
-    /* Fast path: no filter, no scores, no reliable check.
-     * A scheme override alone does NOT disable this path: g_scheme is kept
-     * in sync with cfg->scheme by every set_scheme() path (eldc_lib.c,
-     * _eldc_module.c, eld.c/eld_mt.c --scheme), and detect_ex()'s returned
-     * code already uses g_scheme, so r->language comes back in the requested
-     * scheme either way. */
-    if (!cfg->subset && !cfg->scores && !cfg->reliable) {
-        const char *language = detect_ex(text, NULL, NULL);
-        r->language      = language;   /* NULL = not detected */
+    /* Fast path: no scores, no reliable check — detect_ex returns the language directly.
+     * We extract EldConfig from cfg so scheme/filter are fully isolated per call,
+     * with no reliance on g_config being in sync. */
+    if (!cfg->scores && !cfg->reliable) { // !cfg->subset && unnesesary
+        r->language  = detect_ex(text, NULL, NULL, cfg);
         r->n_entries = 0;
         r->reliable  = 0;
         return;
     }
 
-    /* General path: get raw scores from detect_ex. */
+    /* General path: scores_out != NULL causes detect_ex to copy ls[] and return ""
+     * before reaching the settings/scheme code — NULL is safe and avoids the branch. */
     float raw[MAX_LANGUAGES];
     int   nk = 0;
-    detect_ex(text, raw, &nk);
+    detect_ex(text, raw, &nk, NULL);
 
     if (nk == 0) {
-        r->language      = NULL;
+        r->language  = undetermined;
         r->n_entries = 0;
         r->reliable  = 0;
         return;
@@ -613,7 +634,7 @@ static void eld_process_line(const char    *text,
 
     r->language = (best >= 0)
             ? (cfg->scheme ? ELD_ISO639_2T[best] : ELD_langCodes[best])
-            : NULL;
+            : undetermined;
 
     /* ── Reliability check (uses top-2, always available after sort) ─────── */
     r->reliable = (want_reliable && best >= 0)

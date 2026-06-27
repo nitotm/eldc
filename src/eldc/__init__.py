@@ -24,6 +24,7 @@ from ._eldc import (
     MAX_LANGUAGES,
     MAX_SCORES,
     Result,
+    instance,
 )
 
 __all__ = (
@@ -39,4 +40,5 @@ __all__ = (
     "MAX_LANGUAGES",
     "MAX_SCORES",
     "Result",
+    "instance",
 )

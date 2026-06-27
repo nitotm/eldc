@@ -59,7 +59,7 @@ static void print_lang_list(void) {
  * ═══════════════════════════════════════════════════════════════════════════ */
 int main(int argc, char *argv[])
 {
-    EldConfig cfg = { 0, 0, 0, (uint64_t)-1, 0 };
+    EldConfig cfg = { 0, 0, SCHEME_ISO639_1, (uint64_t)-1, 0 };
     int   verbose           = 0;
     char *input_text        = NULL;
     int   force_interactive = 0;
@@ -95,14 +95,14 @@ int main(int argc, char *argv[])
             } else {
                 cfg.lang_mask = mask; cfg.subset = 1;
                 /* Keep globals in sync so detect_ex() fast-path sees the filter. */
-                g_lang_mask = mask; g_subset = 1;
+                g_config.lang_mask = mask; g_config.subset = 1;
             }
         } else if (!strcmp(a,"--scheme")) {
             if (++i >= argc) { fprintf(stderr,"--scheme requires a value\n"); return 1; }
             if (!strcmp(argv[i],"iso639-1")||!strcmp(argv[i],"iso639_1")) {
-                cfg.scheme = 0; g_scheme = SCHEME_ISO639_1;
+                cfg.scheme = 0; g_config.scheme = 0;
             } else if (!strcmp(argv[i],"iso639-2t")||!strcmp(argv[i],"iso639_2t")) {
-                cfg.scheme = 1; g_scheme = SCHEME_ISO639_2T;
+                cfg.scheme = SCHEME_ISO639_2T; g_config.scheme = SCHEME_ISO639_2T;
             } else {
                 fprintf(stderr,"Unknown scheme '%s'\n",argv[i]); return 1;
             }
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
     }
 
     if (verbose) {
-        fprintf(stderr,"Loading (scheme=%s",g_scheme==SCHEME_ISO639_2T?"iso639-2t":"iso639-1");
+        fprintf(stderr,"Loading (scheme=%s",g_config.scheme==SCHEME_ISO639_2T?"iso639-2t":"iso639-1");
         if (cfg.subset) {
             int cnt=0; for(int i=0;i<MAX_LANGUAGES;i++) if((cfg.lang_mask>>i)&1) cnt++;
             fprintf(stderr,", filter=%d lang%s", cnt, cnt==1?"":"s");
@@ -142,9 +142,9 @@ int main(int argc, char *argv[])
             fwrite(buf, 1, eld_emit_result(buf, &result, &cfg), stdout);
         } else if (verbose) {
             double elapsed = get_time_seconds() - start_time;
-            printf("%s\n(%.7f ms)\n", result.language ? result.language : "und", elapsed * 1000.0);
+            printf("%s\n(%.7f ms)\n", result.language, elapsed * 1000.0);
         } else {
-            puts(result.language ? result.language : "und");
+            puts(result.language);
         }
         return 0;
     }
