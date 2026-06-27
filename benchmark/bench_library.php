@@ -25,14 +25,29 @@ $tatoeba_50_langs =
 
 
 $ffi = FFI::cdef('
+    typedef struct { const char *language; float score; } EldcScoreItem;
+    typedef struct {
+        const char   *language;
+        int           reliable;
+        int           n_scores;
+        EldcScoreItem scores[20];
+    } EldcDetectResult;
+    struct EldcConfig;
+    typedef struct EldcConfig EldcConfig;
     void        eldc_init(void);
     void        eldc_close(void);
     const char *eldc_detect(const char *text);
-    const char *eldc_set_languages(const char *codes);    
+    const char *eldc_set_languages(const char *codes);
+    const char *eldc_set_languages_cfg(EldcConfig *cfg, const char *codes);
+    void        eldc_detect_details(const char *text, EldcDetectResult *result);
+    EldcConfig *eldc_config_create(void);
+    const char *eldc_detect_cfg(EldcConfig *cfg, const char *text);
 ', $lib_name);
 $ffi->eldc_init();
 
 $results = [];
+$r = $ffi->new("EldcDetectResult");
+$i_config = $ffi->eldc_config_create();
 
 foreach ($BENCHMARKS as $testName) {
     $totalLines = 0;
@@ -54,8 +69,10 @@ foreach ($BENCHMARKS as $testName) {
 
     if ($testName === "tatoeba_50_v3") {
         $ffi->eldc_set_languages($tatoeba_50_langs);
+        $ffi->eldc_set_languages_cfg($i_config, $tatoeba_50_langs);
     } else {
         $ffi->eldc_set_languages("");
+        $ffi->eldc_set_languages_cfg($i_config, "");
     }
 
     $tf = new SplFileObject($textFile);
@@ -72,6 +89,11 @@ foreach ($BENCHMARKS as $testName) {
         $startTime = hrtime(true);
 
         $res = $ffi->eldc_detect($line);
+
+        //$ffi->eldc_detect_details($line, FFI::addr($r));
+        //$res = $r->language;
+
+        //$res = $ffi->eldc_detect_cfg($i_config, $line);
 
         $duration += (hrtime(true) - $startTime);
 

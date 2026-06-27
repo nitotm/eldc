@@ -28,3 +28,10 @@
   Total lines     : 635,672
   Avg duration    : 0.1571s
   Avg accuracy    : 95.1892%
+
+
+For py package, detect_details():
+  Avg duration    : 0.2289s
+
+For library with PHP wrapper, eldc_detect():
+  Avg duration    : 0.1230s

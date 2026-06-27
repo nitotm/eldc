@@ -12,6 +12,7 @@ tatoeba_50_langs = ["ar", "az", "be", "bg", "bn", "ca", "cs", "da", "de", "el", 
                     "yo", "zh"]
 
 eldc.init()
+eldc_instance = eldc.instance()
 
 results = []
 
@@ -26,9 +27,10 @@ for test_name in BENCHMARKS:
 
             if (test_name == "tatoeba_50_v3"):
                 eldc.set_languages(tatoeba_50_langs)
+                eldc_instance.set_languages(tatoeba_50_langs)
             else:
                 eldc.set_languages([])
-            
+                eldc_instance.set_languages([])
 
             for line, expected in zip(tf, lf):
                 line     = line.rstrip("\n")
@@ -37,8 +39,11 @@ for test_name in BENCHMARKS:
                     continue
 
                 start_time = time.perf_counter()
-                res        = eldc.detect(line)
+                
+                res       = eldc.detect(line)
                 #res       = eldc.detect_details(line).language
+                #res       = eldc_instance.detect(line)
+                
                 duration  += time.perf_counter() - start_time
 
                 total_lines += 1
