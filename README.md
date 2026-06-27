@@ -71,7 +71,7 @@ r = eldc.detect_details("Hola mundo")  # multi-threaded capable by default
 print(r.language)  # (str)  'es'
 print(r.scores)    # (dict) {'es': 0.80, 'pt': 0.57} Scores are between 0 and 1
 print(r.reliable)  # (bool) True or False
-r = eldc_instance.detect_details("Hola mundo")  # Same behavior
+r = eldc_instance.detect_details("Hola mundo")  # Instance example
 
 # eldc.LANGUAGES and eldc.LANGUAGES_ISO2T return list of all available languages
 ```
@@ -157,7 +157,7 @@ $r->reliable;  // int: 1 (0 for false, 1 for true)
 $r->n_scores;  // int: 3 (default, up to)
 $r->scores[0]->language;  // string: "fr"
 $r->scores[0]->score;  // float: 0.9016
-// Isolated configuration version, works the same way
+// Isolated configuration version example, works the same way
 $ffi->eldc_detect_details_cfg($i_config, "Bonjour", FFI::addr($r));
 
 // Return up to X scores. Default 3, max 20. Global setter.
@@ -175,7 +175,7 @@ $ffi->eldc_set_languages("");  // reset
 $ffi->eldc_set_languages_cfg($i_config, "en,fr,es");  // instance setter
 
 $ffi->eldc_set_scheme("iso639-2t");  // Default "iso639-1". Global setter
-$ffi->eldc_set_scheme_cfg($i_config, ("iso639-2t);  // instance setter
+$ffi->eldc_set_scheme_cfg($i_config, "iso639-2t");  // instance setter
 $ffi->eldc_detect("Hola mundo, bonito dia");  // string: "spa"
 
 // Cleanup
@@ -248,7 +248,7 @@ Examples: (on Windows use `eldc.exe`)
 
 | URL                                                      | Version      | Core Language  |
 |:---------------------------------------------------------|:-------------|:---------------|
-| https://github.com/nitotm/eldc/                          | 0.1.2        | C              |
+| https://github.com/nitotm/eldc/                          | 0.4.0        | C              |
 | https://github.com/pemistahl/lingua-py                   | 2.0.2        | Rust           |
 | https://github.com/facebookresearch/fastText             | 0.9.2        | C++            |
 | https://github.com/CLD2Owners/cld2                       | Aug 21, 2015 | C++            |
@@ -327,7 +327,7 @@ It is the default ELD language scheme. `--scheme iso639-1`
 ***
 
 ### More info
-* ELD-C executable is 24MB, with a similar memory use. 
+* ELD-C executable is 24MB, with a similar runtime memory use.
 * ELD-C only reads first 1000 bytes of the input string (benchmarks are fair, with all lines under), but could be modded, if you feel an increased `--limit` flag/option is necessary, open a discussion.
 * Unlike other versions of ELD, ELD-C only comes with the 'large' database size, as that is the optimal one, but other sizes could be added.
 * Next improvement could be a better training data set, my own "small" 60GB of data are not as clean as I wish, `fineweb-2` looks good.
